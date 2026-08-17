@@ -174,6 +174,19 @@ object McpTools {
                         put("context_before", p.contextBefore)
                         put("context_after", p.contextAfter)
                         put("body", p.body)
+                        put("original_body", p.originalBody)
+                        put("review_cycle", p.reviewCycle)
+                        putJsonArray("review_history") {
+                            p.reviewHistory.forEach { round ->
+                                addJsonObject {
+                                    put("review_cycle", round.reviewCycle)
+                                    put("reason", round.reason)
+                                    round.agentNote?.let { put("agent_note", it) }
+                                    put("created_at", round.createdAt)
+                                    if (round.addressedAt > 0) put("addressed_at", round.addressedAt)
+                                }
+                            }
+                        }
                         put("created_at", p.createdAt)
                     }
                 }
@@ -232,13 +245,20 @@ object McpTools {
         put("timed_out", timedOut)
     }
 
-    fun resolveComment(id: String, note: String?): JsonObject {
+    fun resolveComment(id: String, reviewCycle: Int?, note: String?): JsonObject {
         touch("resolve_comment")
         for (project in ProjectManager.getInstance().openProjects.filter { !it.isDisposed }) {
             val store = project.service<CommentStore>()
             if (store.byId(id) != null) {
-                runOnEdt {
-                    store.setStatus(id, com.github.borgand.marginalia.core.CommentStatus.ADDRESSED, note)
+                var result = CommentStore.ResolveResult.NOT_FOUND
+                runOnEdt { result = store.resolveReview(id, reviewCycle, note) }
+                when (result) {
+                    CommentStore.ResolveResult.MISSING_REVIEW_CYCLE ->
+                        return error("MISSING_REVIEW_CYCLE", "review_cycle is required for a requeued comment")
+                    CommentStore.ResolveResult.STALE_REVIEW_CYCLE ->
+                        return error("STALE_REVIEW_CYCLE", "Comment $id is now on review cycle ${store.byId(id)?.currentReviewCycle()}")
+                    CommentStore.ResolveResult.NOT_FOUND -> return error("INVALID_ANCHOR", "No comment with id $id")
+                    CommentStore.ResolveResult.OK -> Unit
                 }
                 log.log("resolve_comment $id${note?.let { ": $it" } ?: ""}")
                 return buildJsonObject { put("ok", true) }

@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-18
+
+### Added
+- **Multi-cycle review threads.** Re-queueing now requires a reason, preserves every follow-up
+  and agent response on the same anchored comment, and exposes cycle-aware history over MCP.
+
+### Changed
+- **Safe re-queue workflow.** Re-queue is available only for delivered, addressed, resolved,
+  or failed comments. Stale agent responses cannot resolve a newer review cycle.
+- **Distinct draft and pickup states.** Draft comments and comments waiting for an agent are
+  shown separately, and Submit review is disabled when there are no drafts.
+
 ## [1.1.1] - 2026-06-22
 
 ### Added

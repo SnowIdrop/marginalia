@@ -2,7 +2,10 @@ package com.github.borgand.marginalia.ui.toolwindow
 
 import com.github.borgand.marginalia.core.CommentStatus
 import com.github.borgand.marginalia.core.MarginaliaComment
+import com.github.borgand.marginalia.core.canRequeue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VisualStatusTest {
@@ -14,8 +17,8 @@ class VisualStatusTest {
         }
 
     @Test
-    fun draftAndQueuedAreQueued() {
-        assertEquals(VisualStatus.QUEUED, visualStatus(comment(CommentStatus.DRAFT)))
+    fun draftAndQueuedHaveDistinctVisualStates() {
+        assertEquals(VisualStatus.DRAFT, visualStatus(comment(CommentStatus.DRAFT)))
         assertEquals(VisualStatus.QUEUED, visualStatus(comment(CommentStatus.QUEUED)))
     }
 
@@ -44,5 +47,15 @@ class VisualStatusTest {
         assertEquals(VisualStatus.DELIVERED, visualStatus(comment(CommentStatus.DISPATCHED, orphaned = true)))
         assertEquals(VisualStatus.ADDRESSED, visualStatus(comment(CommentStatus.ADDRESSED, orphaned = true)))
         assertEquals(VisualStatus.RESOLVED, visualStatus(comment(CommentStatus.RESOLVED, orphaned = true)))
+    }
+
+    @Test
+    fun requeueIsLimitedToCompletedDeliveredOrFailedComments() {
+        assertFalse(canRequeue(comment(CommentStatus.DRAFT)))
+        assertFalse(canRequeue(comment(CommentStatus.QUEUED)))
+        assertTrue(canRequeue(comment(CommentStatus.DISPATCHED)))
+        assertTrue(canRequeue(comment(CommentStatus.ADDRESSED)))
+        assertTrue(canRequeue(comment(CommentStatus.RESOLVED)))
+        assertTrue(canRequeue(comment(CommentStatus.QUEUED, orphaned = true)))
     }
 }

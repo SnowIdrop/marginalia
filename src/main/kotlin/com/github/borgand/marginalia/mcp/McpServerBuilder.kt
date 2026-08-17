@@ -24,7 +24,7 @@ object McpServerBuilder {
 
     fun build(): Server {
         val server = Server(
-            serverInfo = Implementation(name = "marginalia", version = "0.0.1"),
+            serverInfo = Implementation(name = "marginalia", version = "1.2.0"),
             options = ServerOptions(
                 capabilities = ServerCapabilities(tools = ServerCapabilities.Tools(listChanged = false)),
             ),
@@ -126,19 +126,21 @@ object McpServerBuilder {
 
         server.addTool(
             name = "resolve_comment",
-            description = "Mark a review comment addressed after editing, with an optional short note " +
-                "shown to the user.",
+            description = "Mark the current review cycle addressed after editing. Pass the exact " +
+                "review_cycle returned by get_pending_comments; stale cycles are rejected. An optional " +
+                "short note is shown to the user.",
             inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("id") { put("type", "string") }
+                    putJsonObject("review_cycle") { put("type", "integer") }
                     putJsonObject("note") { put("type", "string") }
                 },
-                required = listOf("id"),
+                required = listOf("id", "review_cycle"),
             ),
         ) { request ->
             val args = request.arguments
             val id = args.string("id") ?: return@addTool missing("id")
-            McpTools.resolveComment(id, args.string("note")).toResult()
+            McpTools.resolveComment(id, args.int("review_cycle"), args.string("note")).toResult()
         }
 
         return server

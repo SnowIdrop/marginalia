@@ -31,10 +31,15 @@ class InlineCommentPopup(
     line: Int,
     snippet: String,
     recentComments: List<String> = emptyList(),
+    private val headerText: String = MarginaliaBundle.message("comment.header"),
+    private val statusText: String = MarginaliaBundle.message("status.queued"),
+    private val submitText: String = MarginaliaBundle.message("comment.add"),
+    private val submitTooltip: String = MarginaliaBundle.message("comment.add.tooltip", shortcutLabel()),
+    prompt: String? = null,
     private val onSubmit: (String) -> Unit,
 ) {
 
-    private val form = CommentForm(fileName, line, snippet, recentComments)
+    private val form = CommentForm(fileName, line, snippet, recentComments, prompt)
     private val displayName = "$fileName : ${line + 1}"
     private var popup: JBPopup? = null
 
@@ -57,9 +62,9 @@ class InlineCommentPopup(
 
     private fun header(): JComponent = JPanel(FlowLayout(FlowLayout.LEFT, JBUI.scale(6), JBUI.scale(4))).apply {
         border = JBUI.Borders.emptyBottom(2)
-        add(JBLabel(MarginaliaBundle.message("comment.header"), MarginaliaIcons.Pen, SwingConstants.LEFT).apply { font = JBFont.regular().asBold() })
+        add(JBLabel(headerText, MarginaliaIcons.Pen, SwingConstants.LEFT).apply { font = JBFont.regular().asBold() })
         add(JBLabel(displayName).apply { font = JBFont.small(); foreground = MarginaliaColors.textMuted })
-        add(JBLabel(MarginaliaBundle.message("status.queued")).apply { font = JBFont.small(); foreground = MarginaliaColors.statusPending })
+        add(JBLabel(statusText).apply { font = JBFont.small(); foreground = MarginaliaColors.statusPending })
     }
 
     private fun footer(): JComponent = JPanel(BorderLayout()).apply {
@@ -69,9 +74,9 @@ class InlineCommentPopup(
             BorderLayout.WEST,
         )
         add(
-            JButton(MarginaliaBundle.message("comment.add")).apply {
+            JButton(submitText).apply {
                 putClientProperty("JButton.buttonType", "default")
-                toolTipText = MarginaliaBundle.message("comment.add.tooltip", shortcutLabel())
+                toolTipText = submitTooltip
                 addActionListener { submit() }
             },
             BorderLayout.EAST,
@@ -96,6 +101,8 @@ class InlineCommentPopup(
         onSubmit(body)
     }
 
-    private fun shortcutLabel(): String =
+    companion object {
+        fun shortcutLabel(): String =
         if (System.getProperty("os.name").startsWith("Mac")) "⌘↵" else "Ctrl+Enter"
+    }
 }

@@ -44,6 +44,7 @@ class CommentListModelTest {
         val model = CommentListModel()
         model.setComments(
             listOf(
+                comment("/proj/a.md", CommentStatus.DRAFT),
                 comment("/proj/a.md", CommentStatus.QUEUED),
                 comment("/proj/a.md", CommentStatus.DISPATCHED), // delivered, not queued
                 comment("/proj/a.md", CommentStatus.RESOLVED), // not queued
@@ -51,7 +52,7 @@ class CommentListModelTest {
         )
 
         val header = headers(model).single()
-        assertEquals(3, header.total)
+        assertEquals(4, header.total)
         assertEquals(1, header.queuedCount)
     }
 

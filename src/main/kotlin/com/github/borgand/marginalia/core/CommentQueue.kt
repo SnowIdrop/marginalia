@@ -41,7 +41,18 @@ class CommentQueue(private val project: Project) {
         val contextBefore: String,
         val contextAfter: String,
         val body: String,
+        val originalBody: String,
+        val reviewCycle: Int,
+        val reviewHistory: List<PendingReviewRound>,
         val createdAt: Long,
+    )
+
+    data class PendingReviewRound(
+        val reviewCycle: Int,
+        val reason: String,
+        val agentNote: String?,
+        val createdAt: Long,
+        val addressedAt: Long,
     )
 
     /** Dispatch payload for QUEUED comments (optionally limited to [path]); marks them DISPATCHED. */
@@ -71,7 +82,15 @@ class CommentQueue(private val project: Project) {
                 anchoredText = anchoredText,
                 contextBefore = contextBefore,
                 contextAfter = contextAfter,
-                body = comment.body,
+                body = comment.currentInstruction(),
+                originalBody = comment.body,
+                reviewCycle = comment.currentReviewCycle(),
+                reviewHistory = buildList {
+                    add(PendingReviewRound(0, comment.body, comment.resolutionNote, comment.createdAt, 0))
+                    comment.reviewRounds.forEach {
+                        add(PendingReviewRound(it.reviewCycle, it.reason, it.agentNote, it.createdAt, it.addressedAt))
+                    }
+                },
                 createdAt = comment.createdAt,
             )
         }

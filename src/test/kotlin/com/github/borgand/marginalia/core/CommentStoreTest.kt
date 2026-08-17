@@ -164,6 +164,40 @@ class CommentStoreTest : BasePlatformTestCase() {
         assertEquals("done, rephrased", updated.resolutionNote)
     }
 
+    fun testRequeueAppendsReviewRoundAndPreservesOriginalResponse() {
+        configure("alpha\n")
+        val doc = myFixture.editor.document
+        val comment = store.addComment(doc, 0, 5, "original", CommentStatus.QUEUED)
+        store.setStatus(comment.id, CommentStatus.ADDRESSED, "first response")
+
+        assertTrue(store.requeue(comment.id, "try a different approach"))
+        val updated = store.byId(comment.id)!!
+        assertEquals(CommentStatus.QUEUED, updated.status)
+        assertEquals("first response", updated.resolutionNote)
+        assertEquals(1, updated.currentReviewCycle())
+        assertEquals("try a different approach", updated.currentInstruction())
+    }
+
+    fun testResolveRejectsStaleReviewCycle() {
+        configure("alpha\n")
+        val doc = myFixture.editor.document
+        val comment = store.addComment(doc, 0, 5, "original", CommentStatus.DISPATCHED)
+        assertTrue(store.requeue(comment.id, "follow up"))
+
+        assertEquals(CommentStore.ResolveResult.STALE_REVIEW_CYCLE, store.resolveReview(comment.id, 0, "stale"))
+        assertNull(comment.reviewRounds.single().agentNote)
+        assertEquals(CommentStore.ResolveResult.OK, store.resolveReview(comment.id, 1, "current"))
+        assertEquals("current", comment.reviewRounds.single().agentNote)
+    }
+
+    fun testLegacyCycleZeroAllowsMissingReviewCycle() {
+        configure("alpha\n")
+        val comment = store.addComment(myFixture.editor.document, 0, 5, "original", CommentStatus.DISPATCHED)
+
+        assertEquals(CommentStore.ResolveResult.OK, store.resolveReview(comment.id, null, "legacy"))
+        assertEquals("legacy", comment.resolutionNote)
+    }
+
     fun testHeadingPathNested() {
         val text = "# Top\n\n## Section\n\ntext under section\n\n## Other\n\nmore\n"
         configure(text)

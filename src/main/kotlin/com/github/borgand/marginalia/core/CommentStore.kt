@@ -108,6 +108,59 @@ class CommentStore(private val project: Project) : PersistentStateComponent<Comm
         return true
     }
 
+    fun requeue(
+        id: String,
+        reason: String,
+        reanchorDocument: Document? = null,
+        reanchorStart: Int = 0,
+        reanchorEnd: Int = 0,
+    ): Boolean {
+        val comment = byId(id) ?: return false
+        val normalized = reason.trim()
+        if (normalized.isEmpty() || !canRequeue(comment)) return false
+        if (comment.orphaned) {
+            val document = reanchorDocument ?: return false
+            if (reanchorStart !in 0 until reanchorEnd || reanchorEnd > document.textLength) return false
+            markers.remove(id)?.dispose()
+            markers[id] = document.createRangeMarker(reanchorStart, reanchorEnd)
+            comment.startOffset = reanchorStart
+            comment.endOffset = reanchorEnd
+            comment.anchoredText = document.getText(TextRange(reanchorStart, reanchorEnd))
+            comment.orphaned = false
+        }
+        comment.reviewRounds.add(
+            ReviewRound().apply {
+                reviewCycle = comment.currentReviewCycle() + 1
+                this.reason = normalized
+                createdAt = System.currentTimeMillis()
+            },
+        )
+        comment.status = CommentStatus.QUEUED
+        rememberCommentBody(normalized)
+        notifyChanged()
+        return true
+    }
+
+    enum class ResolveResult { OK, NOT_FOUND, MISSING_REVIEW_CYCLE, STALE_REVIEW_CYCLE }
+
+    fun resolveReview(id: String, reviewCycle: Int?, note: String?): ResolveResult {
+        val comment = byId(id) ?: return ResolveResult.NOT_FOUND
+        val currentCycle = comment.currentReviewCycle()
+        if (reviewCycle == null && currentCycle > 0) return ResolveResult.MISSING_REVIEW_CYCLE
+        if (reviewCycle != null && reviewCycle != currentCycle) return ResolveResult.STALE_REVIEW_CYCLE
+        if (currentCycle == 0) {
+            comment.resolutionNote = note
+        } else {
+            comment.reviewRounds.last().apply {
+                agentNote = note
+                addressedAt = System.currentTimeMillis()
+            }
+        }
+        comment.status = CommentStatus.ADDRESSED
+        notifyChanged()
+        return ResolveResult.OK
+    }
+
     fun remove(id: String) {
         state.comments.removeAll { it.id == id }
         markers.remove(id)?.dispose()

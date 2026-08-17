@@ -7,12 +7,15 @@ import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import java.awt.Color
 
 /**
- * The five statuses surfaced from the [CommentStatus] model plus the orphaned flag. This
+ * The statuses surfaced from the [CommentStatus] model plus the orphaned flag. This
  * is the single mapping from comment state to appearance — the list, the gutter, the ribbon
  * and the badge all read it.
  */
 enum class VisualStatus {
-    /** Written, not yet delivered to the agent. */
+    /** Written in manual mode, not yet submitted for agent pickup. */
+    DRAFT,
+
+    /** Submitted and waiting for the agent to pull it. */
     QUEUED,
 
     /** Agent pulled it via get_pending_comments. */
@@ -31,6 +34,7 @@ enum class VisualStatus {
     val label: String
         get() = MarginaliaBundle.message(
             when (this) {
+                DRAFT -> "status.draft"
                 QUEUED -> "status.queued"
                 DELIVERED -> "status.delivered"
                 ADDRESSED -> "status.addressed"
@@ -41,6 +45,7 @@ enum class VisualStatus {
 
     val color: Color
         get() = when (this) {
+            DRAFT -> MarginaliaColors.textMuted
             QUEUED -> MarginaliaColors.statusPending // amber — pending, not yet sent
             DELIVERED -> MarginaliaColors.statusDelivered // green — in flight / positive progress
             ADDRESSED -> MarginaliaColors.accent // agent response is ready for human review
@@ -66,5 +71,6 @@ fun visualStatus(comment: MarginaliaComment): VisualStatus = when {
     comment.status == CommentStatus.ADDRESSED -> VisualStatus.ADDRESSED
     comment.status == CommentStatus.DISPATCHED -> VisualStatus.DELIVERED
     comment.orphaned -> VisualStatus.FAILED // DRAFT/QUEUED with a lost anchor
-    else -> VisualStatus.QUEUED // DRAFT, QUEUED
+    comment.status == CommentStatus.DRAFT -> VisualStatus.DRAFT
+    else -> VisualStatus.QUEUED
 }

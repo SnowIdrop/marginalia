@@ -158,6 +158,42 @@ class CommentListRenderer : ListCellRenderer<SidecarRow> {
             )
         }
 
+        row.comment.reviewRounds.lastOrNull()?.let { round ->
+            card.add(vstrut())
+            card.add(JBLabel(MarginaliaBundle.message("comment.review.cycle", round.reviewCycle)).apply {
+                font = JBFont.small().asBold()
+                foreground = VisualStatus.QUEUED.color
+                alignmentX = Component.LEFT_ALIGNMENT
+            })
+            card.add(JBLabel(htmlBody(round.reason, bodyWidth)).apply {
+                font = JBFont.regular()
+                foreground = MarginaliaColors.textPrimary
+                border = JBUI.Borders.empty(2, 10, 0, 0)
+                alignmentX = Component.LEFT_ALIGNMENT
+            })
+            round.agentNote?.takeIf { it.isNotBlank() }?.let { note ->
+                card.add(JBLabel(MarginaliaBundle.message("comment.agent.feedback")).apply {
+                    font = JBFont.small().asBold()
+                    foreground = VisualStatus.ADDRESSED.color
+                    alignmentX = Component.LEFT_ALIGNMENT
+                })
+                card.add(JBLabel(htmlBody(note, bodyWidth)).apply {
+                    font = JBFont.regular()
+                    foreground = MarginaliaColors.textPrimary
+                    border = JBUI.Borders.empty(2, 10, 0, 0)
+                    alignmentX = Component.LEFT_ALIGNMENT
+                })
+            }
+            val earlier = row.comment.reviewRounds.size - 1
+            if (earlier > 0) {
+                card.add(JBLabel(MarginaliaBundle.message("comment.review.earlier", earlier)).apply {
+                    font = JBFont.small()
+                    foreground = MarginaliaColors.textMuted
+                    alignmentX = Component.LEFT_ALIGNMENT
+                })
+            }
+        }
+
         // final row: avatar + "You · 2m ago"
         card.add(vstrut())
         val meta = horizontal()

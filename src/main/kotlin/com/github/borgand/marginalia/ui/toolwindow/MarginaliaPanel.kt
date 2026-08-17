@@ -7,8 +7,13 @@ import com.github.borgand.marginalia.core.CommentStatus
 import com.github.borgand.marginalia.core.CommentStore
 import com.github.borgand.marginalia.core.DocRegistry
 import com.github.borgand.marginalia.core.MarginaliaComment
+import com.github.borgand.marginalia.core.canRequeue
 import com.github.borgand.marginalia.mcp.McpServerService
 import com.github.borgand.marginalia.ui.ConnectivityReport
+import com.github.borgand.marginalia.ui.CaptureSurface
+import com.github.borgand.marginalia.ui.MarginaliaSettings
+import com.github.borgand.marginalia.ui.comment.InlineCommentPopup
+import com.github.borgand.marginalia.ui.comment.RequeueCommentDialog
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import com.github.borgand.marginalia.ui.theme.MarginaliaIcons
 import com.intellij.icons.AllIcons
@@ -23,6 +28,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.SimpleToolWindowPanel
@@ -43,6 +49,8 @@ import javax.swing.JMenuItem
 import javax.swing.JPanel
 import javax.swing.JPopupMenu
 import javax.swing.ListSelectionModel
+import javax.swing.event.PopupMenuEvent
+import javax.swing.event.PopupMenuListener
 
 /**
  * The sidecar body. A [SimpleToolWindowPanel] with an action toolbar + connection chip on
@@ -71,6 +79,9 @@ class MarginaliaPanel(
     private val footer = FooterStatusPanel(this)
     private val baseBadge = BadgeIconSupplier(MarginaliaIcons.ToolWindow)
     private var clearButton: JButton? = null
+    private var submitButton: JButton? = null
+    private var requeueItem: JMenuItem? = null
+    private var historyItem: JMenuItem? = null
 
     init {
         toolbar = buildToolbar()
@@ -106,6 +117,7 @@ class MarginaliaPanel(
                 service<ActivityLog>().log("submit review: $n comment(s) queued")
             }
         }
+        submitButton = submit
 
         val clear = JButton(MarginaliaBundle.message("panel.clear"), AllIcons.Actions.GC).apply {
             toolTipText = MarginaliaBundle.message("panel.clear.tooltip")
@@ -158,7 +170,12 @@ class MarginaliaPanel(
             addActionListener { selectedComment()?.let { store.setStatus(it.id, CommentStatus.RESOLVED) } }
         })
         add(JMenuItem(MarginaliaBundle.message("panel.requeue")).apply {
-            addActionListener { selectedComment()?.let { store.setStatus(it.id, CommentStatus.QUEUED) } }
+            addActionListener { requeueSelected() }
+            requeueItem = this
+        })
+        add(JMenuItem(MarginaliaBundle.message("panel.review.history")).apply {
+            addActionListener { selectedComment()?.let { ReviewHistoryDialog(project, it).show() } }
+            historyItem = this
         })
         add(JMenuItem(MarginaliaBundle.message("panel.delete")).apply {
             addActionListener { selectedComment()?.let { store.remove(it.id) } }
@@ -167,6 +184,15 @@ class MarginaliaPanel(
             addActionListener {
                 selectedComment()?.let { project.service<DocRegistry>().unregister(it.filePath) }
             }
+        })
+        addPopupMenuListener(object : PopupMenuListener {
+            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) {
+                val comment = selectedComment()
+                requeueItem?.isEnabled = comment?.let(::canRequeue) == true
+                historyItem?.isEnabled = comment?.reviewRounds?.isNotEmpty() == true
+            }
+            override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) = Unit
+            override fun popupMenuCanceled(e: PopupMenuEvent) = Unit
         })
     }
 
@@ -209,6 +235,68 @@ class MarginaliaPanel(
     private fun selectedComment(): MarginaliaComment? =
         (list.selectedValue as? SidecarRow.CommentRow)?.comment
 
+    private fun requeueSelected() {
+        val comment = selectedComment()?.takeIf(::canRequeue) ?: return
+        val file = LocalFileSystem.getInstance().findFileByPath(comment.filePath)
+        if (file == null) {
+            Messages.showErrorDialog(project, MarginaliaBundle.message("comment.requeue.file.missing"), MarginaliaBundle.message("comment.requeue.title"))
+            return
+        }
+        val line = lineOf(comment)
+        val descriptor = if (line != null) {
+            OpenFileDescriptor(project, file, line, 0)
+        } else {
+            OpenFileDescriptor(project, file, comment.startOffset.coerceAtLeast(0))
+        }
+        val editor = FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
+        if (editor == null) {
+            Messages.showErrorDialog(project, MarginaliaBundle.message("comment.requeue.editor.missing"), MarginaliaBundle.message("comment.requeue.title"))
+            return
+        }
+        val document = editor.document
+        val marker = store.markerFor(comment.id)
+        val needsReanchor = marker == null || !marker.isValid || comment.orphaned
+        val (start, end) = ReadAction.compute<Pair<Int, Int>, RuntimeException> {
+            if (!needsReanchor) {
+                marker!!.startOffset to marker.endOffset
+            } else {
+                val offset = comment.startOffset.coerceIn(0, document.textLength)
+                val line = document.getLineNumber(offset)
+                document.getLineStartOffset(line) to document.getLineEndOffset(line)
+            }
+        }
+        val anchorLine = document.getLineNumber(start)
+        val snippet = document.getText(com.intellij.openapi.util.TextRange(start, end))
+        val submit: (String) -> Unit = { reason ->
+            val ok = store.requeue(
+                comment.id,
+                reason,
+                if (needsReanchor) document else null,
+                start,
+                end,
+            )
+            if (!ok) Messages.showErrorDialog(project, MarginaliaBundle.message("comment.requeue.failed"), MarginaliaBundle.message("comment.requeue.title"))
+        }
+        when (service<MarginaliaSettings>().captureSurface) {
+            CaptureSurface.INLINE -> InlineCommentPopup(
+                editor,
+                file.name,
+                anchorLine,
+                snippet,
+                headerText = MarginaliaBundle.message("comment.requeue.title"),
+                statusText = MarginaliaBundle.message("status.queued"),
+                submitText = MarginaliaBundle.message("panel.requeue"),
+                submitTooltip = MarginaliaBundle.message("comment.requeue.submit.tooltip", InlineCommentPopup.shortcutLabel()),
+                prompt = MarginaliaBundle.message("comment.requeue.reason"),
+                onSubmit = submit,
+            ).show()
+            CaptureSurface.DIALOG -> {
+                val dialog = RequeueCommentDialog(project, file.name, anchorLine, snippet)
+                if (dialog.showAndGet()) submit(dialog.reason)
+            }
+        }
+    }
+
     private fun jumpToSelected() {
         val comment = selectedComment() ?: return
         val file = LocalFileSystem.getInstance().findFileByPath(comment.filePath) ?: return
@@ -240,6 +328,7 @@ class MarginaliaPanel(
             addressed = counts[VisualStatus.ADDRESSED] ?: 0,
             delivered = counts[VisualStatus.DELIVERED] ?: 0,
             queued = counts[VisualStatus.QUEUED] ?: 0,
+            draft = counts[VisualStatus.DRAFT] ?: 0,
         )
 
         val view = connectionView(
@@ -251,9 +340,10 @@ class MarginaliaPanel(
         footer.refresh()
 
         clearButton?.isEnabled = comments.isNotEmpty()
+        submitButton?.isEnabled = comments.any { it.status == CommentStatus.DRAFT }
 
-        val queued = counts[VisualStatus.QUEUED] ?: 0
-        toolWindow.setIcon(baseBadge.getWarningIcon(queued > 0))
+        val pending = (counts[VisualStatus.DRAFT] ?: 0) + (counts[VisualStatus.QUEUED] ?: 0)
+        toolWindow.setIcon(baseBadge.getWarningIcon(pending > 0))
     }
 
     private fun onEdt(action: () -> Unit) {

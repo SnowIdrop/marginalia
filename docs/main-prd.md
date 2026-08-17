@@ -179,12 +179,13 @@ cleanly lands, return the rest as conflicts. If `base_version` is unknown/too ol
 `STALE_BASE` (agent should `read_doc` again).
 
 **`get_pending_comments(path?)`** →
-`{ comments: [{ id, path, heading_path, anchored_text, context_before, context_after, body, created_at }] }`
-Marks returned comments `dispatched`.
+`{ comments: [{ id, path, heading_path, anchored_text, context_before, context_after, body, original_body, review_cycle, review_history, created_at }] }`
+Marks returned comments `dispatched`. `body` is the actionable instruction for the current
+cycle; `original_body` and `review_history` preserve the full anchored discussion.
 
-**`resolve_comment(id, note?)`** → `{ ok: true }`
-Marks `addressed`; note shown in tool window. The dispatch prompt template instructs the
-agent to call this per comment after editing.
+**`resolve_comment(id, review_cycle, note?)`** → `{ ok: true }`
+Marks the matching cycle `addressed`; stale cycles are rejected so an earlier agent turn
+cannot resolve a newer follow-up. The note is shown in the tool window.
 
 ## 7. Key design decisions (with rationale)
 

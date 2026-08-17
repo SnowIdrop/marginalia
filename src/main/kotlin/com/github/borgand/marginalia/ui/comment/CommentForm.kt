@@ -30,6 +30,7 @@ class CommentForm(
     private val line: Int,
     private val snippet: String,
     recentComments: List<String> = emptyList(),
+    private val prompt: String? = null,
 ) {
 
     val textArea = JBTextArea(4, 42).apply {
@@ -88,6 +89,16 @@ class CommentForm(
             add(javax.swing.Box.createVerticalStrut(JBUI.scale(4)))
             add(combo)
             add(javax.swing.Box.createVerticalStrut(JBUI.scale(8)))
+        }
+        prompt?.let {
+            add(
+                JBLabel(it).apply {
+                    font = JBFont.small().asBold()
+                    foreground = MarginaliaColors.textMuted
+                    alignmentX = JComponent.LEFT_ALIGNMENT
+                },
+            )
+            add(javax.swing.Box.createVerticalStrut(JBUI.scale(4)))
         }
         add(JBScrollPane(textArea).apply { alignmentX = JComponent.LEFT_ALIGNMENT })
     }

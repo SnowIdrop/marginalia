@@ -142,16 +142,37 @@ class McpToolsTest : BasePlatformTestCase() {
         assertEquals(path, c["path"]!!.jsonPrimitive.content)
         assertEquals("improve", c["anchored_text"]!!.jsonPrimitive.content)
         assertEquals("be specific", c["body"]!!.jsonPrimitive.content)
+        assertEquals("be specific", c["original_body"]!!.jsonPrimitive.content)
+        assertEquals(0, c["review_cycle"]!!.jsonPrimitive.int)
+        assertEquals(1, c["review_history"]!!.jsonArray.size)
         assertEquals("H", c["heading_path"]!!.jsonArray[0].jsonPrimitive.content)
 
-        val resolved = McpTools.resolveComment(comment.id, "rephrased it")
+        val resolved = McpTools.resolveComment(comment.id, 0, "rephrased it")
         assertTrue(resolved["ok"]!!.jsonPrimitive.boolean)
         assertEquals(CommentStatus.ADDRESSED, store.byId(comment.id)!!.status)
         assertEquals("rephrased it", store.byId(comment.id)!!.resolutionNote)
     }
 
+    fun testRequeuedCommentReturnsCurrentInstructionAndRejectsStaleResolve() {
+        val path = coEditedDoc("alpha\n")
+        val doc = myFixture.editor.document
+        val comment = store.addComment(doc, 0, 5, "original", CommentStatus.DISPATCHED)
+        assertTrue(store.requeue(comment.id, "follow up"))
+
+        val payload = McpTools.getPendingComments(path)["comments"]!!.jsonArray.single().jsonObject
+        assertEquals("follow up", payload["body"]!!.jsonPrimitive.content)
+        assertEquals("original", payload["original_body"]!!.jsonPrimitive.content)
+        assertEquals(1, payload["review_cycle"]!!.jsonPrimitive.int)
+        assertEquals(2, payload["review_history"]!!.jsonArray.size)
+
+        assertEquals("STALE_REVIEW_CYCLE", McpTools.resolveComment(comment.id, 0, "old").errorCode())
+        assertNull(comment.reviewRounds.single().agentNote)
+        assertTrue(McpTools.resolveComment(comment.id, 1, "done")["ok"]!!.jsonPrimitive.boolean)
+        assertEquals("done", comment.reviewRounds.single().agentNote)
+    }
+
     fun testResolveUnknownCommentIsInvalidAnchor() {
-        val result = McpTools.resolveComment("nope", null)
+        val result = McpTools.resolveComment("nope", 0, null)
         assertEquals("INVALID_ANCHOR", result.errorCode())
     }
 
