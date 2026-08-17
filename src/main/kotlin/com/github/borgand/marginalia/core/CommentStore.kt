@@ -28,6 +28,7 @@ class CommentStore(private val project: Project) : PersistentStateComponent<Comm
 
     class State {
         var comments: MutableList<MarginaliaComment> = mutableListOf()
+        var recentCommentBodies: MutableList<String> = mutableListOf()
     }
 
     private var state = State()
@@ -41,6 +42,16 @@ class CommentStore(private val project: Project) : PersistentStateComponent<Comm
 
     override fun loadState(state: State) {
         this.state = state
+        if (state.recentCommentBodies.isEmpty()) {
+            state.recentCommentBodies.addAll(
+                state.comments
+                    .sortedByDescending { it.createdAt }
+                    .map { it.body.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .take(MAX_RECENT_COMMENTS),
+            )
+        }
     }
 
     fun addChangeListener(parent: Disposable, listener: () -> Unit) {
@@ -75,12 +86,15 @@ class CommentStore(private val project: Project) : PersistentStateComponent<Comm
         }
         markers[comment.id] = document.createRangeMarker(startOffset, endOffset)
         state.comments.add(comment)
+        rememberCommentBody(body)
         notifyChanged()
         return comment
     }
 
     fun comments(path: String? = null): List<MarginaliaComment> =
         state.comments.filter { path == null || it.filePath == path }
+
+    fun recentCommentBodies(): List<String> = state.recentCommentBodies.toList()
 
     fun byId(id: String): MarginaliaComment? = state.comments.find { it.id == id }
 
@@ -112,9 +126,20 @@ class CommentStore(private val project: Project) : PersistentStateComponent<Comm
 
     fun clear() {
         state.comments.clear()
+        state.recentCommentBodies.clear()
         markers.values.forEach { it.dispose() }
         markers.clear()
         notifyChanged()
+    }
+
+    private fun rememberCommentBody(body: String) {
+        val normalized = body.trim()
+        if (normalized.isEmpty()) return
+        state.recentCommentBodies.remove(normalized)
+        state.recentCommentBodies.add(0, normalized)
+        if (state.recentCommentBodies.size > MAX_RECENT_COMMENTS) {
+            state.recentCommentBodies.subList(MAX_RECENT_COMMENTS, state.recentCommentBodies.size).clear()
+        }
     }
 
     /**
@@ -169,5 +194,9 @@ class CommentStore(private val project: Project) : PersistentStateComponent<Comm
             index = text.indexOf(snippet, index + 1)
         }
         return best
+    }
+
+    companion object {
+        private const val MAX_RECENT_COMMENTS = 20
     }
 }

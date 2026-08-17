@@ -29,6 +29,55 @@ class CommentStoreTest : BasePlatformTestCase() {
         assertNotNull(store.markerFor(comment.id))
     }
 
+    fun testRecentCommentBodiesAreUniqueAndMostRecentFirst() {
+        configure("alpha\n")
+        val doc = myFixture.editor.document
+
+        store.addComment(doc, 0, 5, "first", CommentStatus.QUEUED)
+        store.addComment(doc, 0, 5, "second", CommentStatus.QUEUED)
+        store.addComment(doc, 0, 5, "first", CommentStatus.QUEUED)
+
+        assertEquals(listOf("first", "second"), store.recentCommentBodies())
+    }
+
+    fun testRecentCommentBodiesSurviveRemovingActiveComments() {
+        configure("alpha\n")
+        val doc = myFixture.editor.document
+        store.addComment(doc, 0, 5, "reusable", CommentStatus.RESOLVED)
+
+        store.removeWhere { true }
+
+        assertTrue(store.comments().isEmpty())
+        assertEquals(listOf("reusable"), store.recentCommentBodies())
+    }
+
+    fun testRecentCommentBodiesAreLimitedToTwenty() {
+        configure("alpha\n")
+        val doc = myFixture.editor.document
+        repeat(25) { index ->
+            store.addComment(doc, 0, 5, "comment $index", CommentStatus.QUEUED)
+        }
+
+        assertEquals(20, store.recentCommentBodies().size)
+        assertEquals("comment 24", store.recentCommentBodies().first())
+        assertEquals("comment 5", store.recentCommentBodies().last())
+    }
+
+    fun testLoadStateBuildsHistoryFromExistingComments() {
+        val state = CommentStore.State().apply {
+            comments = mutableListOf(
+                MarginaliaComment().apply { body = "older"; createdAt = 10 },
+                MarginaliaComment().apply { body = "newer"; createdAt = 20 },
+                MarginaliaComment().apply { body = "older"; createdAt = 30 },
+            )
+        }
+        val fresh = CommentStore(project)
+
+        fresh.loadState(state)
+
+        assertEquals(listOf("older", "newer"), fresh.recentCommentBodies())
+    }
+
     fun testMarkerTracksUserEditAbove() {
         configure("first line\ntarget here\n")
         val doc = myFixture.editor.document

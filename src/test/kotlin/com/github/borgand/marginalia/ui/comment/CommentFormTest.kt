@@ -29,4 +29,21 @@ class CommentFormTest : BasePlatformTestCase() {
 
         assertEquals("width must not depend on selection length", long, longer)
     }
+
+    fun testSelectingRecentCommentFillsTextArea() {
+        val form = CommentForm("Example.cs", 4, "target", listOf("first comment", "second comment"))
+        form.component
+
+        val combo = form.recentCommentsCombo
+        assertNotNull(combo)
+        combo!!.selectedIndex = 1
+
+        assertEquals("second comment", form.body)
+    }
+
+    fun testRecentCommentSelectorIsHiddenWhenHistoryIsEmpty() {
+        val form = CommentForm("Example.cs", 4, "target")
+
+        assertNull(form.recentCommentsCombo)
+    }
 }

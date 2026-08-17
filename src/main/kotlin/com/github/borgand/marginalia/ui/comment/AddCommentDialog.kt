@@ -22,9 +22,10 @@ class AddCommentDialog(
     fileName: String,
     line: Int,
     snippet: String,
+    recentComments: List<String> = emptyList(),
 ) : DialogWrapper(project) {
 
-    private val form = CommentForm(fileName, line, snippet)
+    private val form = CommentForm(fileName, line, snippet, recentComments)
 
     init {
         title = MarginaliaBundle.message("comment.add.title")

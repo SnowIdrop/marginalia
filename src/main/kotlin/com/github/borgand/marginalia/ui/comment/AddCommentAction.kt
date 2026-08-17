@@ -53,15 +53,16 @@ class AddCommentAction : AnAction(), DumbAware {
 
         val line = document.getLineNumber(start)
         val snippet = document.getText(TextRange(start, end))
+        val recentComments = project.service<CommentStore>().recentCommentBodies()
 
         when (service<MarginaliaSettings>().captureSurface) {
             CaptureSurface.INLINE ->
-                InlineCommentPopup(editor, file.name, line, snippet) { body ->
+                InlineCommentPopup(editor, file.name, line, snippet, recentComments) { body ->
                     persist(project, document, start, end, body)
                 }.show()
 
             CaptureSurface.DIALOG -> {
-                val dialog = AddCommentDialog(project, file.name, line, snippet)
+                val dialog = AddCommentDialog(project, file.name, line, snippet, recentComments)
                 if (dialog.showAndGet()) persist(project, document, start, end, dialog.body)
             }
         }

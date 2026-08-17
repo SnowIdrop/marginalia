@@ -30,10 +30,11 @@ class InlineCommentPopup(
     fileName: String,
     line: Int,
     snippet: String,
+    recentComments: List<String> = emptyList(),
     private val onSubmit: (String) -> Unit,
 ) {
 
-    private val form = CommentForm(fileName, line, snippet)
+    private val form = CommentForm(fileName, line, snippet, recentComments)
     private val displayName = "$fileName : ${line + 1}"
     private var popup: JBPopup? = null
 

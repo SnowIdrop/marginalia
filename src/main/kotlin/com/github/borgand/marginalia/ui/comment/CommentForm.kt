@@ -4,6 +4,7 @@ import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.fileTypes.FileTypeManager
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
@@ -13,6 +14,8 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Font
 import javax.swing.BoxLayout
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingConstants
@@ -22,7 +25,12 @@ import javax.swing.SwingConstants
  * the anchored line shown in the editor font inside a `status.pending`-ruled quote box, and
  * the text input. Reused by both [AddCommentDialog] and [InlineCommentPopup].
  */
-class CommentForm(private val fileName: String, private val line: Int, private val snippet: String) {
+class CommentForm(
+    private val fileName: String,
+    private val line: Int,
+    private val snippet: String,
+    recentComments: List<String> = emptyList(),
+) {
 
     val textArea = JBTextArea(4, 42).apply {
         lineWrap = true
@@ -31,6 +39,24 @@ class CommentForm(private val fileName: String, private val line: Int, private v
 
     /** Trimmed body text. */
     val body: String get() = textArea.text.trim()
+
+    internal val recentCommentsCombo: JComboBox<String>? = recentComments.takeIf { it.isNotEmpty() }?.let { comments ->
+        JComboBox(DefaultComboBoxModel(comments.toTypedArray())).apply {
+            selectedIndex = -1
+            renderer = SimpleListCellRenderer.create<String>(MarginaliaBundle.message("comment.previous.placeholder")) {
+                historyPreview(it)
+            }
+            toolTipText = MarginaliaBundle.message("comment.previous.tooltip")
+            alignmentX = JComponent.LEFT_ALIGNMENT
+            maximumSize = Dimension(Int.MAX_VALUE, preferredSize.height)
+            addActionListener {
+                val selected = selectedItem as? String ?: return@addActionListener
+                textArea.text = selected
+                textArea.caretPosition = selected.length
+                textArea.requestFocusInWindow()
+            }
+        }
+    }
 
     val component: JComponent by lazy { build() }
 
@@ -51,6 +77,18 @@ class CommentForm(private val fileName: String, private val line: Int, private v
         add(javax.swing.Box.createVerticalStrut(JBUI.scale(6)))
         add(quoteBox())
         add(javax.swing.Box.createVerticalStrut(JBUI.scale(8)))
+        recentCommentsCombo?.let { combo ->
+            add(
+                JBLabel(MarginaliaBundle.message("comment.previous")).apply {
+                    font = JBFont.small().asBold()
+                    foreground = MarginaliaColors.textMuted
+                    alignmentX = JComponent.LEFT_ALIGNMENT
+                },
+            )
+            add(javax.swing.Box.createVerticalStrut(JBUI.scale(4)))
+            add(combo)
+            add(javax.swing.Box.createVerticalStrut(JBUI.scale(8)))
+        }
         add(JBScrollPane(textArea).apply { alignmentX = JComponent.LEFT_ALIGNMENT })
     }
 
@@ -96,9 +134,13 @@ class CommentForm(private val fileName: String, private val line: Int, private v
     private fun truncate(s: String, max: Int): String =
         if (s.length <= max) s else s.take(max - 1) + "…"
 
+    private fun historyPreview(body: String): String =
+        truncate(body.replace(Regex("\\s+"), " ").trim(), HISTORY_PREVIEW_MAX_CHARS)
+
     companion object {
         private const val MIN_WIDTH = 360
         private const val MAX_WIDTH = 560
         private const val SNIPPET_MAX_CHARS = 72
+        private const val HISTORY_PREVIEW_MAX_CHARS = 72
     }
 }
