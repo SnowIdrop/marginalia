@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.toolwindow
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBFont
@@ -23,6 +24,7 @@ class ProgressRibbon : JPanel(BorderLayout(0, JBUI.scale(4))) {
 
     private val bar = Bar()
     private val resolvedLabel = legendLabel(VisualStatus.RESOLVED)
+    private val addressedLabel = legendLabel(VisualStatus.ADDRESSED)
     private val deliveredLabel = legendLabel(VisualStatus.DELIVERED)
     private val queuedLabel = legendLabel(VisualStatus.QUEUED)
 
@@ -36,6 +38,8 @@ class ProgressRibbon : JPanel(BorderLayout(0, JBUI.scale(4))) {
         }
         legend.add(resolvedLabel)
         legend.add(javax.swing.Box.createHorizontalStrut(JBUI.scale(12)))
+        legend.add(addressedLabel)
+        legend.add(javax.swing.Box.createHorizontalStrut(JBUI.scale(12)))
         legend.add(deliveredLabel)
         legend.add(javax.swing.Box.createHorizontalStrut(JBUI.scale(12)))
         legend.add(queuedLabel)
@@ -43,11 +47,12 @@ class ProgressRibbon : JPanel(BorderLayout(0, JBUI.scale(4))) {
         add(legend, BorderLayout.CENTER)
     }
 
-    fun update(resolved: Int, delivered: Int, queued: Int) {
-        bar.set(resolved, delivered, queued)
-        resolvedLabel.text = "● $resolved Resolved"
-        deliveredLabel.text = "● $delivered Delivered"
-        queuedLabel.text = "● $queued Queued"
+    fun update(resolved: Int, addressed: Int, delivered: Int, queued: Int) {
+        bar.set(resolved, addressed, delivered, queued)
+        resolvedLabel.text = MarginaliaBundle.message("progress.legend", resolved, VisualStatus.RESOLVED.label)
+        addressedLabel.text = MarginaliaBundle.message("progress.legend", addressed, VisualStatus.ADDRESSED.label)
+        deliveredLabel.text = MarginaliaBundle.message("progress.legend", delivered, VisualStatus.DELIVERED.label)
+        queuedLabel.text = MarginaliaBundle.message("progress.legend", queued, VisualStatus.QUEUED.label)
         revalidate(); repaint()
     }
 
@@ -62,19 +67,21 @@ class ProgressRibbon : JPanel(BorderLayout(0, JBUI.scale(4))) {
      */
     private class Bar : JComponent() {
         private var curR = 0f
+        private var curA = 0f
         private var curD = 0f
         private var curQ = 0f
         private var tgtR = 0
+        private var tgtA = 0
         private var tgtD = 0
         private var tgtQ = 0
         private var initialized = false
 
         private val animator = javax.swing.Timer(16) { tick() }
 
-        fun set(r: Int, d: Int, q: Int) {
-            tgtR = r; tgtD = d; tgtQ = q
+        fun set(r: Int, a: Int, d: Int, q: Int) {
+            tgtR = r; tgtA = a; tgtD = d; tgtQ = q
             if (!initialized) {
-                curR = r.toFloat(); curD = d.toFloat(); curQ = q.toFloat()
+                curR = r.toFloat(); curA = a.toFloat(); curD = d.toFloat(); curQ = q.toFloat()
                 initialized = true
                 repaint()
             } else if (!animator.isRunning) {
@@ -84,11 +91,13 @@ class ProgressRibbon : JPanel(BorderLayout(0, JBUI.scale(4))) {
 
         private fun tick() {
             curR += (tgtR - curR) * 0.25f
+            curA += (tgtA - curA) * 0.25f
             curD += (tgtD - curD) * 0.25f
             curQ += (tgtQ - curQ) * 0.25f
-            val settled = listOf(tgtR - curR, tgtD - curD, tgtQ - curQ).all { kotlin.math.abs(it) < 0.5f }
+            val settled = listOf(tgtR - curR, tgtA - curA, tgtD - curD, tgtQ - curQ)
+                .all { kotlin.math.abs(it) < 0.5f }
             if (settled) {
-                curR = tgtR.toFloat(); curD = tgtD.toFloat(); curQ = tgtQ.toFloat()
+                curR = tgtR.toFloat(); curA = tgtA.toFloat(); curD = tgtD.toFloat(); curQ = tgtQ.toFloat()
                 animator.stop()
             }
             repaint()
@@ -112,11 +121,12 @@ class ProgressRibbon : JPanel(BorderLayout(0, JBUI.scale(4))) {
                 g2.color = MarginaliaColors.soft(MarginaliaColors.textMuted)
                 g2.fill(RoundRectangle2D.Float(0f, 0f, w, h, h, h))
 
-                val total = curR + curD + curQ
+                val total = curR + curA + curD + curQ
                 if (total <= 0f) return
                 var x = 0f
                 for ((value, color) in listOf(
                     curR to VisualStatus.RESOLVED.color,
+                    curA to VisualStatus.ADDRESSED.color,
                     curD to VisualStatus.DELIVERED.color,
                     curQ to VisualStatus.QUEUED.color,
                 )) {

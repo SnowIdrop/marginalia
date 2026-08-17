@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.comment
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
@@ -26,9 +27,9 @@ class AddCommentDialog(
     private val form = CommentForm(fileName, line, snippet)
 
     init {
-        title = "Add comment"
+        title = MarginaliaBundle.message("comment.add.title")
         isResizable = true
-        setOKButtonText("Add comment")
+        setOKButtonText(MarginaliaBundle.message("comment.add.title"))
         init()
     }
 
@@ -39,7 +40,7 @@ class AddCommentDialog(
     override fun createSouthAdditionalPanel(): JPanel = JPanel(BorderLayout()).apply {
         border = JBUI.Borders.emptyLeft(8)
         add(
-            JBLabel("Queues to the agent").apply {
+            JBLabel(MarginaliaBundle.message("comment.queues.to.agent")).apply {
                 font = JBFont.small()
                 foreground = MarginaliaColors.statusPending
             },
@@ -49,7 +50,7 @@ class AddCommentDialog(
 
     override fun doValidate() =
         if (form.body.isEmpty()) {
-            ValidationInfo("Enter a comment for the agent.", form.textArea)
+            ValidationInfo(MarginaliaBundle.message("comment.required"), form.textArea)
         } else {
             null
         }

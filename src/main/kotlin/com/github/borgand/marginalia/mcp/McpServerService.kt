@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.mcp
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.core.ActivityLog
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationGroupManager
@@ -117,10 +118,8 @@ class McpServerService : Disposable {
                 ServerSocket(port, 1, InetAddress.getLoopbackAddress()).close()
             } catch (e: BindException) {
                 fail(
-                    "port $port is already in use",
-                    "Another process is listening on 127.0.0.1:$port. " +
-                        "Free it (lsof -nP -iTCP:$port) or change the port in " +
-                        "Settings > Tools > Marginalia, then restart the server.",
+                    MarginaliaBundle.message("server.port.in.use", port),
+                    MarginaliaBundle.message("server.port.in.use.detail", port),
                     e,
                 )
                 return
@@ -145,11 +144,12 @@ class McpServerService : Disposable {
             engine = null
             // Not a port problem — most likely a binary-compatibility issue (the MCP/Ktor
             // stack vs the IDE's bundled Kotlin). Report it accurately, do not blame the port.
-            val kind = if (t is LinkageError) "internal compatibility error" else "internal error"
+            val kind = MarginaliaBundle.message(
+                if (t is LinkageError) "server.compatibility.error" else "server.internal.error",
+            )
             fail(
                 "$kind — ${t.message}",
-                "The MCP server could not start ($kind). Comment features still work. " +
-                    "Details: ${t.message}",
+                MarginaliaBundle.message("server.start.failed", kind, t.message ?: ""),
                 t,
             )
         }
@@ -169,7 +169,7 @@ class McpServerService : Disposable {
         status = "FAILED: $shortStatus"
         safeLog("MCP server $status")
         log.warn("Marginalia MCP server failed to start: $shortStatus", cause)
-        notify("Marginalia MCP server failed to start", detail, NotificationType.WARNING)
+        notify(MarginaliaBundle.message("server.start.failed.title"), detail, NotificationType.WARNING)
     }
 
     private fun safeLog(message: String) {

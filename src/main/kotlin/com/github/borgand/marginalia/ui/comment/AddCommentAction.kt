@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.comment
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.core.ActivityLog
 import com.github.borgand.marginalia.core.CommentQueue
 import com.github.borgand.marginalia.core.CommentStore
@@ -27,6 +28,8 @@ class AddCommentAction : AnAction(), DumbAware {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
     override fun update(e: AnActionEvent) {
+        e.presentation.text = MarginaliaBundle.message("action.Marginalia.AddComment.text")
+        e.presentation.description = MarginaliaBundle.message("action.Marginalia.AddComment.description")
         val editor = e.getData(CommonDataKeys.EDITOR)
         e.presentation.isEnabledAndVisible =
             e.project != null && editor != null &&

@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.toolwindow
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.core.ActivityLog
 import com.github.borgand.marginalia.mcp.McpServerService
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
@@ -29,7 +30,7 @@ class FooterStatusPanel(parent: Disposable) : JPanel(BorderLayout()) {
     private val dot = JBLabel("●")
     private val statusText = JBLabel().apply { font = JBFont.small() }
     private val mcpChip = RoundedPill("MCP", MarginaliaColors.textMuted, MarginaliaColors.soft(MarginaliaColors.textMuted))
-    private val toggle = JBLabel("▸ Log").apply {
+    private val toggle = JBLabel(MarginaliaBundle.message("footer.log.collapsed")).apply {
         font = JBFont.small()
         foreground = MarginaliaColors.accent
         cursor = java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR)
@@ -75,7 +76,9 @@ class FooterStatusPanel(parent: Disposable) : JPanel(BorderLayout()) {
         toggle.addMouseListener(object : java.awt.event.MouseAdapter() {
             override fun mouseClicked(e: java.awt.event.MouseEvent) {
                 logScroll.isVisible = !logScroll.isVisible
-                toggle.text = if (logScroll.isVisible) "▾ Log" else "▸ Log"
+                toggle.text = MarginaliaBundle.message(
+                    if (logScroll.isVisible) "footer.log.expanded" else "footer.log.collapsed",
+                )
                 revalidate(); repaint()
             }
         })

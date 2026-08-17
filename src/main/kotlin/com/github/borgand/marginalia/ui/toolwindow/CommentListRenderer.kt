@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.toolwindow
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.fileTypes.FileTypeManager
@@ -81,7 +82,7 @@ class CommentListRenderer : ListCellRenderer<SidecarRow> {
                 border = JBUI.Borders.emptyLeft(6)
                 add(
                     RoundedPill(
-                        "${row.queuedCount} to send",
+                        MarginaliaBundle.message("comment.to.send", row.queuedCount),
                         MarginaliaColors.statusPending,
                         MarginaliaColors.soft(MarginaliaColors.statusPending),
                     ),
@@ -138,13 +139,32 @@ class CommentListRenderer : ListCellRenderer<SidecarRow> {
             },
         )
 
-        // row 4: avatar + "You · 2m ago"
+        row.comment.resolutionNote?.takeIf { it.isNotBlank() }?.let { note ->
+            card.add(vstrut())
+            card.add(
+                JBLabel(MarginaliaBundle.message("comment.agent.feedback")).apply {
+                    font = JBFont.small().asBold()
+                    foreground = VisualStatus.ADDRESSED.color
+                    alignmentX = Component.LEFT_ALIGNMENT
+                },
+            )
+            card.add(
+                JBLabel(htmlBody(note, bodyWidth)).apply {
+                    font = JBFont.regular()
+                    foreground = MarginaliaColors.textPrimary
+                    border = JBUI.Borders.empty(2, 10, 0, 0)
+                    alignmentX = Component.LEFT_ALIGNMENT
+                },
+            )
+        }
+
+        // final row: avatar + "You · 2m ago"
         card.add(vstrut())
         val meta = horizontal()
         meta.add(Avatar())
         meta.add(strut())
         meta.add(
-            JBLabel("You · ${relativeTime(row.comment.createdAt)}").apply {
+            JBLabel(MarginaliaBundle.message("comment.author.time", relativeTime(row.comment.createdAt))).apply {
                 font = JBFont.small()
                 foreground = MarginaliaColors.textMuted
             },
@@ -222,7 +242,7 @@ class CommentListRenderer : ListCellRenderer<SidecarRow> {
                 g2.color = MarginaliaColors.accent
                 g2.font = font
                 val fm = g2.fontMetrics
-                val s = "Y"
+                val s = MarginaliaBundle.message("comment.author.avatar")
                 g2.drawString(s, (size - fm.stringWidth(s)) / 2, (size - fm.height) / 2 + fm.ascent)
             } finally {
                 g2.dispose()

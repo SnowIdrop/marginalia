@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.toolwindow
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.core.ActivityLog
 import com.github.borgand.marginalia.core.CommentQueue
 import com.github.borgand.marginalia.core.CommentStatus
@@ -86,7 +87,7 @@ class MarginaliaPanel(
     private fun buildToolbar(): JComponent {
         val group = DefaultActionGroup().apply {
             add(AutoQueueToggle())
-            val more = DefaultActionGroup("More", true).apply {
+            val more = DefaultActionGroup(MarginaliaBundle.message("panel.more"), true).apply {
                 templatePresentation.icon = AllIcons.General.GearPlain
                 add(RestartServerAction())
                 add(TestConnectivityAction())
@@ -97,17 +98,17 @@ class MarginaliaPanel(
             .createActionToolbar("MarginaliaToolbar", group, true)
         actionToolbar.targetComponent = this
 
-        val submit = JButton("Submit review").apply {
+        val submit = JButton(MarginaliaBundle.message("panel.submit.review")).apply {
             putClientProperty("JButton.buttonType", "default")
-            toolTipText = "Queue all draft comments for the agent"
+            toolTipText = MarginaliaBundle.message("panel.submit.review.tooltip")
             addActionListener {
                 val n = queue.submitReview()
                 service<ActivityLog>().log("submit review: $n comment(s) queued")
             }
         }
 
-        val clear = JButton("Clear", AllIcons.Actions.GC).apply {
-            toolTipText = "Remove resolved, failed, or all comments from the queue"
+        val clear = JButton(MarginaliaBundle.message("panel.clear"), AllIcons.Actions.GC).apply {
+            toolTipText = MarginaliaBundle.message("panel.clear.tooltip")
             addActionListener { showClearMenu(this) }
         }
         clearButton = clear
@@ -152,17 +153,17 @@ class MarginaliaPanel(
     }
 
     private fun buildPopupMenu(): JPopupMenu = JPopupMenu().apply {
-        add(JMenuItem("Jump to line").apply { addActionListener { jumpToSelected() } })
-        add(JMenuItem("Resolve").apply {
+        add(JMenuItem(MarginaliaBundle.message("panel.jump.to.line")).apply { addActionListener { jumpToSelected() } })
+        add(JMenuItem(MarginaliaBundle.message("panel.resolve")).apply {
             addActionListener { selectedComment()?.let { store.setStatus(it.id, CommentStatus.RESOLVED) } }
         })
-        add(JMenuItem("Re-queue").apply {
+        add(JMenuItem(MarginaliaBundle.message("panel.requeue")).apply {
             addActionListener { selectedComment()?.let { store.setStatus(it.id, CommentStatus.QUEUED) } }
         })
-        add(JMenuItem("Delete").apply {
+        add(JMenuItem(MarginaliaBundle.message("panel.delete")).apply {
             addActionListener { selectedComment()?.let { store.remove(it.id) } }
         })
-        add(JMenuItem("Stop co-editing this file").apply {
+        add(JMenuItem(MarginaliaBundle.message("panel.stop.coediting")).apply {
             addActionListener {
                 selectedComment()?.let { project.service<DocRegistry>().unregister(it.filePath) }
             }
@@ -176,21 +177,21 @@ class MarginaliaPanel(
         val failed = comments.filter { visualStatus(it) == VisualStatus.FAILED }
 
         val menu = JPopupMenu()
-        menu.add(JMenuItem("Clear resolved (${resolved.size})").apply {
+        menu.add(JMenuItem(MarginaliaBundle.message("panel.clear.resolved", resolved.size)).apply {
             isEnabled = resolved.isNotEmpty()
             addActionListener { clear("resolved") { visualStatus(it) == VisualStatus.RESOLVED } }
         })
-        menu.add(JMenuItem("Clear failed (${failed.size})").apply {
+        menu.add(JMenuItem(MarginaliaBundle.message("panel.clear.failed", failed.size)).apply {
             isEnabled = failed.isNotEmpty()
             addActionListener { clear("failed") { visualStatus(it) == VisualStatus.FAILED } }
         })
-        menu.add(JMenuItem("Clear all (${comments.size})").apply {
+        menu.add(JMenuItem(MarginaliaBundle.message("panel.clear.all", comments.size)).apply {
             isEnabled = comments.isNotEmpty()
             addActionListener {
                 val confirmed = Messages.showYesNoDialog(
                     project,
-                    "Remove all ${comments.size} comment(s)? This cannot be undone.",
-                    "Clear All Comments",
+                    MarginaliaBundle.message("panel.clear.all.message", comments.size),
+                    MarginaliaBundle.message("panel.clear.all.title"),
                     Messages.getWarningIcon(),
                 ) == Messages.YES
                 if (confirmed) clear("all") { true }
@@ -236,6 +237,7 @@ class MarginaliaPanel(
         val counts = comments.groupingBy { visualStatus(it) }.eachCount()
         ribbon.update(
             resolved = counts[VisualStatus.RESOLVED] ?: 0,
+            addressed = counts[VisualStatus.ADDRESSED] ?: 0,
             delivered = counts[VisualStatus.DELIVERED] ?: 0,
             queued = counts[VisualStatus.QUEUED] ?: 0,
         )
@@ -262,13 +264,21 @@ class MarginaliaPanel(
     override fun dispose() {}
 
     // ── toolbar actions ─────────────────────────────────────────────────────────
-    private inner class AutoQueueToggle : ToggleAction("Auto-queue", AUTO_QUEUE_TOOLTIP, AllIcons.Actions.Lightning) {
+    private inner class AutoQueueToggle : ToggleAction(
+        MarginaliaBundle.message("panel.auto.queue"),
+        MarginaliaBundle.message("panel.auto.queue.tooltip"),
+        AllIcons.Actions.Lightning,
+    ) {
         override fun getActionUpdateThread() = ActionUpdateThread.EDT
         override fun isSelected(e: AnActionEvent) = queue.autoDispatch
         override fun setSelected(e: AnActionEvent, state: Boolean) { queue.autoDispatch = state }
     }
 
-    private inner class RestartServerAction : AnAction("Restart Server", "Restart the MCP server (picks up a changed port)", AllIcons.Actions.Restart) {
+    private inner class RestartServerAction : AnAction(
+        MarginaliaBundle.message("panel.restart.server"),
+        MarginaliaBundle.message("panel.restart.server.tooltip"),
+        AllIcons.Actions.Restart,
+    ) {
         override fun getActionUpdateThread() = ActionUpdateThread.BGT
         override fun actionPerformed(e: AnActionEvent) {
             ApplicationManager.getApplication().executeOnPooledThread {
@@ -278,7 +288,11 @@ class MarginaliaPanel(
         }
     }
 
-    private inner class TestConnectivityAction : AnAction("Test Agent Connectivity", "Check whether the agent has reached the MCP server", AllIcons.Actions.Lightning) {
+    private inner class TestConnectivityAction : AnAction(
+        MarginaliaBundle.message("panel.test.connectivity"),
+        MarginaliaBundle.message("panel.test.connectivity.tooltip"),
+        AllIcons.Actions.Lightning,
+    ) {
         override fun getActionUpdateThread() = ActionUpdateThread.BGT
         override fun actionPerformed(e: AnActionEvent) {
             ApplicationManager.getApplication().executeOnPooledThread {
@@ -286,16 +300,11 @@ class MarginaliaPanel(
                 onEdt {
                     service<ActivityLog>().log("connectivity test:\n$report")
                     Messages.showMessageDialog(
-                        project, report, "Marginalia — Agent Connectivity", Messages.getInformationIcon(),
+                        project, report, MarginaliaBundle.message("panel.connectivity.title"), Messages.getInformationIcon(),
                     )
                 }
             }
         }
     }
 
-    companion object {
-        private const val AUTO_QUEUE_TOOLTIP =
-            "On: new comments are immediately available to the agent (status queued). " +
-                "Off: comments stay draft until you click Submit review."
-    }
 }

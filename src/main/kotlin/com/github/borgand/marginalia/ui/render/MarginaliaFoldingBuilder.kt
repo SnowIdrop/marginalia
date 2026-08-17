@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.render
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.intellij.lang.ASTNode
 import com.intellij.lang.folding.FoldingBuilderEx
 import com.intellij.lang.folding.FoldingDescriptor
@@ -26,7 +27,9 @@ class MarginaliaFoldingBuilder : FoldingBuilderEx() {
             for (comment in htmlComments(file)) {
                 out += FoldingDescriptor(file.node, comment, null, "<!-- … -->")
             }
-            frontmatter(file)?.let { out += FoldingDescriptor(file.node, it, null, "--- front matter ---") }
+            frontmatter(file)?.let {
+                out += FoldingDescriptor(file.node, it, null, MarginaliaBundle.message("fold.frontmatter"))
+            }
         }
         return out.toTypedArray()
     }

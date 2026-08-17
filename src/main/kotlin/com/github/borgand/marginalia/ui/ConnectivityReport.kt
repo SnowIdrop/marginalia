@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.core.DocRegistry
 import com.github.borgand.marginalia.mcp.McpServerService
 import com.intellij.openapi.components.service
@@ -20,37 +21,40 @@ object ConnectivityReport {
 
         val lines = mutableListOf<String>()
 
-        lines += "MCP server: ${server.status}"
-        lines += if (listening) "Port $port: accepting connections ✓"
-        else "Port $port: NOT accepting connections ✗ (server not running — use Restart server)"
+        lines += MarginaliaBundle.message("connectivity.server", server.status)
+        lines += if (listening) {
+            MarginaliaBundle.message("connectivity.port.accepting", port)
+        } else {
+            MarginaliaBundle.message("connectivity.port.not.accepting", port)
+        }
 
         val connectedAt = server.lastClientConnectedAt
         lines += if (connectedAt != null) {
-            "Agent connection: a client connected ${ago(connectedAt)} ✓"
+            MarginaliaBundle.message("connectivity.agent.connected", ago(connectedAt))
         } else {
-            "Agent connection: no MCP client has ever connected ✗"
+            MarginaliaBundle.message("connectivity.agent.never")
         }
 
         val toolAt = server.lastToolCallAt
         lines += if (toolAt != null) {
-            "Last tool call: ${server.lastToolName} ${ago(toolAt)}"
+            MarginaliaBundle.message("connectivity.last.tool", server.lastToolName ?: "", ago(toolAt))
         } else {
-            "Last tool call: never"
+            MarginaliaBundle.message("connectivity.last.tool.never")
         }
 
-        lines += "Co-edited files in this project: ${coEdited.size}"
+        lines += MarginaliaBundle.message("connectivity.files", coEdited.size)
 
         lines += ""
         if (!listening) {
-            lines += "→ The server isn't up. Click \"Restart server\" or check Settings > Tools > Marginalia."
+            lines += MarginaliaBundle.message("connectivity.server.down")
         } else if (connectedAt == null) {
-            lines += "→ The server is up but no agent has connected. Register it once with:"
+            lines += MarginaliaBundle.message("connectivity.no.agent")
             lines += "    claude mcp add --transport http marginalia http://localhost:$port/mcp"
-            lines += "  then run \"/mcp\" in Claude Code to confirm 'marginalia' is listed."
+            lines += MarginaliaBundle.message("connectivity.confirm.mcp")
         } else {
-            lines += "→ The agent has reached the server. Note: Marginalia is pull-based —"
-            lines += "  queued comments are delivered when the agent calls get_pending_comments"
-            lines += "  (run /marginalia in Claude Code, or ask it to check Marginalia comments)."
+            lines += MarginaliaBundle.message("connectivity.agent.reached")
+            lines += MarginaliaBundle.message("connectivity.comments.delivered")
+            lines += MarginaliaBundle.message("connectivity.check.comments")
         }
 
         return lines.joinToString("\n")
@@ -59,10 +63,10 @@ object ConnectivityReport {
     private fun ago(timestamp: Long): String {
         val seconds = (System.currentTimeMillis() - timestamp) / 1000
         return when {
-            seconds < 5 -> "just now"
-            seconds < 60 -> "${seconds}s ago"
-            seconds < 3600 -> "${seconds / 60}m ago"
-            else -> "${seconds / 3600}h ago"
+            seconds < 5 -> MarginaliaBundle.message("time.just.now")
+            seconds < 60 -> MarginaliaBundle.message("time.seconds.ago", seconds)
+            seconds < 3600 -> MarginaliaBundle.message("time.minutes.ago", seconds / 60)
+            else -> MarginaliaBundle.message("time.hours.ago", seconds / 3600)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.render
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.fileTypes.PlainSyntaxHighlighter
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
@@ -16,19 +17,19 @@ class MarginaliaColorSettingsPage : ColorSettingsPage {
     override fun getColorDescriptors(): Array<ColorDescriptor> = ColorDescriptor.EMPTY_ARRAY
 
     override fun getAttributeDescriptors(): Array<AttributesDescriptor> = arrayOf(
-        AttributesDescriptor("Heading 1", MarginaliaTextAttributes.H1),
-        AttributesDescriptor("Heading 2", MarginaliaTextAttributes.H2),
-        AttributesDescriptor("Heading 3", MarginaliaTextAttributes.H3),
-        AttributesDescriptor("Heading 4-6", MarginaliaTextAttributes.H4_6),
-        AttributesDescriptor("Heading 1 emphasis (bold/italic/underline)", MarginaliaTextAttributes.H1_STYLE),
-        AttributesDescriptor("Heading 2 emphasis (bold/italic)", MarginaliaTextAttributes.H2_STYLE),
-        AttributesDescriptor("Blockquote text", MarginaliaTextAttributes.BLOCKQUOTE),
-        AttributesDescriptor("List marker", MarginaliaTextAttributes.LIST_MARKER),
-        AttributesDescriptor("Dimmed syntax marker", MarginaliaTextAttributes.DIMMED_MARKER),
-        AttributesDescriptor("Bold", MarginaliaTextAttributes.BOLD),
-        AttributesDescriptor("Italic", MarginaliaTextAttributes.ITALIC),
-        AttributesDescriptor("Bold italic", MarginaliaTextAttributes.BOLD_ITALIC),
-        AttributesDescriptor("Strikethrough", MarginaliaTextAttributes.STRIKETHROUGH),
+        AttributesDescriptor(MarginaliaBundle.message("color.heading.1"), MarginaliaTextAttributes.H1),
+        AttributesDescriptor(MarginaliaBundle.message("color.heading.2"), MarginaliaTextAttributes.H2),
+        AttributesDescriptor(MarginaliaBundle.message("color.heading.3"), MarginaliaTextAttributes.H3),
+        AttributesDescriptor(MarginaliaBundle.message("color.heading.4.6"), MarginaliaTextAttributes.H4_6),
+        AttributesDescriptor(MarginaliaBundle.message("color.heading.1.emphasis"), MarginaliaTextAttributes.H1_STYLE),
+        AttributesDescriptor(MarginaliaBundle.message("color.heading.2.emphasis"), MarginaliaTextAttributes.H2_STYLE),
+        AttributesDescriptor(MarginaliaBundle.message("color.blockquote"), MarginaliaTextAttributes.BLOCKQUOTE),
+        AttributesDescriptor(MarginaliaBundle.message("color.list.marker"), MarginaliaTextAttributes.LIST_MARKER),
+        AttributesDescriptor(MarginaliaBundle.message("color.dimmed.marker"), MarginaliaTextAttributes.DIMMED_MARKER),
+        AttributesDescriptor(MarginaliaBundle.message("color.bold"), MarginaliaTextAttributes.BOLD),
+        AttributesDescriptor(MarginaliaBundle.message("color.italic"), MarginaliaTextAttributes.ITALIC),
+        AttributesDescriptor(MarginaliaBundle.message("color.bold.italic"), MarginaliaTextAttributes.BOLD_ITALIC),
+        AttributesDescriptor(MarginaliaBundle.message("color.strikethrough"), MarginaliaTextAttributes.STRIKETHROUGH),
     )
 
     override fun getDemoText(): String =

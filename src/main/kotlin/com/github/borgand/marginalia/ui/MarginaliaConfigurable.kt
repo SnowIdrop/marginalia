@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.mcp.McpServerService
 import com.github.borgand.marginalia.ui.render.RenderSettings
 import com.intellij.openapi.components.service
@@ -28,12 +29,12 @@ class MarginaliaConfigurable : Configurable {
     private val portField = JBTextField(10)
     private val statusLabel = JBLabel()
     private val captureSurfaceCombo = JComboBox(DefaultComboBoxModel(CaptureSurface.entries.toTypedArray()))
-    private val foldLinkUrlsBox = JCheckBox("Fold link URLs")
-    private val foldFrontmatterBox = JCheckBox("Fold frontmatter & HTML comments")
-    private val dimMarkersBox = JCheckBox("Dim syntax markers")
-    private val bigTitlesBox = JCheckBox("Render large H1/H2 titles")
-    private val renderTablesBox = JCheckBox("Render tables as grids")
-    private val inlineImagesBox = JCheckBox("Render images inline (experimental)")
+    private val foldLinkUrlsBox = JCheckBox(MarginaliaBundle.message("settings.fold.link.urls"))
+    private val foldFrontmatterBox = JCheckBox(MarginaliaBundle.message("settings.fold.frontmatter"))
+    private val dimMarkersBox = JCheckBox(MarginaliaBundle.message("settings.dim.markers"))
+    private val bigTitlesBox = JCheckBox(MarginaliaBundle.message("settings.big.titles"))
+    private val renderTablesBox = JCheckBox(MarginaliaBundle.message("settings.render.tables"))
+    private val inlineImagesBox = JCheckBox(MarginaliaBundle.message("settings.inline.images"))
 
     override fun getDisplayName(): String = "Marginalia"
 
@@ -48,7 +49,7 @@ class MarginaliaConfigurable : Configurable {
         bigTitlesBox.isSelected = render.bigTitles
         renderTablesBox.isSelected = render.renderTables
         inlineImagesBox.isSelected = render.inlineImages
-        val restartButton = JButton("Restart server").apply {
+        val restartButton = JButton(MarginaliaBundle.message("settings.restart.server")).apply {
             addActionListener {
                 applyPort()
                 server.restart()
@@ -56,11 +57,11 @@ class MarginaliaConfigurable : Configurable {
             }
         }
         val panel: JPanel = FormBuilder.createFormBuilder()
-            .addLabeledComponent("MCP server port:", portField)
+            .addLabeledComponent(MarginaliaBundle.message("settings.server.port"), portField)
             .addComponent(restartButton)
             .addComponent(statusLabel)
-            .addLabeledComponent("New comment opens as:", captureSurfaceCombo)
-            .addComponent(JBLabel("Markdown rendering:"))
+            .addLabeledComponent(MarginaliaBundle.message("settings.capture.surface"), captureSurfaceCombo)
+            .addComponent(JBLabel(MarginaliaBundle.message("settings.markdown.rendering")))
             .addComponent(foldLinkUrlsBox)
             .addComponent(foldFrontmatterBox)
             .addComponent(dimMarkersBox)
@@ -75,13 +76,17 @@ class MarginaliaConfigurable : Configurable {
     private fun captureSurfaceRenderer() =
         com.intellij.ui.SimpleListCellRenderer.create<CaptureSurface>("") {
             when (it) {
-                CaptureSurface.INLINE -> "Inline popup at the line"
-                CaptureSurface.DIALOG -> "Modal dialog"
+                CaptureSurface.INLINE -> MarginaliaBundle.message("settings.capture.inline")
+                CaptureSurface.DIALOG -> MarginaliaBundle.message("settings.capture.dialog")
             }
         }
 
     private fun refreshStatus() {
-        statusLabel.text = "Status: ${server.status}"
+        statusLabel.text = when (server.state) {
+            McpServerService.State.STOPPED -> MarginaliaBundle.message("settings.status.stopped")
+            McpServerService.State.RUNNING -> MarginaliaBundle.message("settings.status.running", server.port())
+            McpServerService.State.FAILED -> MarginaliaBundle.message("settings.status.failed", server.status)
+        }
     }
 
     private fun parsedPort(): Int? = portField.text.trim().toIntOrNull()?.takeIf { it in 1..65535 }
@@ -89,7 +94,7 @@ class MarginaliaConfigurable : Configurable {
     private fun applyPort() {
         val port = parsedPort()
         if (port == null) {
-            Messages.showErrorDialog("Port must be a number between 1 and 65535.", "Marginalia")
+            Messages.showErrorDialog(MarginaliaBundle.message("settings.invalid.port"), "Marginalia")
             return
         }
         server.setPort(port)

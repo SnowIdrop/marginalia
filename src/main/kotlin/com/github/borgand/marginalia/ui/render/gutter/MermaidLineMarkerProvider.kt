@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.render.gutter
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.ui.render.MarkdownStructure
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
@@ -33,10 +34,10 @@ class MermaidLineMarkerProvider : LineMarkerProvider {
             result += LineMarkerInfo(
                 leaf, leaf.textRange,
                 com.intellij.icons.AllIcons.Actions.Preview,
-                { "Render Mermaid diagram" },
+                { MarginaliaBundle.message("render.mermaid") },
                 { e, _ -> showDiagram(m.code, e) },
                 GutterIconRenderer.Alignment.LEFT,
-                { "Render Mermaid diagram" },
+                { MarginaliaBundle.message("render.mermaid") },
             )
         }
     }

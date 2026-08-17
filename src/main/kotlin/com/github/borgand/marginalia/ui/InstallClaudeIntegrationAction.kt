@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.core.ActivityLog
 import com.github.borgand.marginalia.hooks.ClaudeSettingsMerger
 import com.github.borgand.marginalia.mcp.McpServerService
@@ -7,6 +8,7 @@ import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.Messages
@@ -23,6 +25,13 @@ import java.nio.file.attribute.PosixFilePermission
  */
 class InstallClaudeIntegrationAction : AnAction(), DumbAware {
 
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.text = MarginaliaBundle.message("action.Marginalia.InstallClaudeIntegration.text")
+        e.presentation.description = MarginaliaBundle.message("action.Marginalia.InstallClaudeIntegration.description")
+    }
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project
         val home = Path.of(System.getProperty("marginalia.home") ?: System.getProperty("user.home"))
@@ -32,19 +41,14 @@ class InstallClaudeIntegrationAction : AnAction(), DumbAware {
 
         val confirmed = Messages.showYesNoDialog(
             project,
-            """
-            This will:
-              • write $hookTarget (and make it executable)
-              • add a PreToolUse hook entry to $settingsTarget
-              • write $commandTarget (/marginalia slash command)
-
-            The hook denies Claude's native Edit/Write on co-edited files and requires 'jq'.
-            Register the MCP server separately (once):
-              claude mcp add --transport http marginalia http://localhost:${service<McpServerService>().port()}/mcp
-
-            Proceed?
-            """.trimIndent(),
-            "Install Claude Code Integration",
+            MarginaliaBundle.message(
+                "install.confirm.message",
+                hookTarget,
+                settingsTarget,
+                commandTarget,
+                service<McpServerService>().port(),
+            ),
+            MarginaliaBundle.message("install.confirm.title"),
             Messages.getQuestionIcon(),
         ) == Messages.YES
         if (!confirmed) return
@@ -61,14 +65,13 @@ class InstallClaudeIntegrationAction : AnAction(), DumbAware {
             NotificationGroupManager.getInstance()
                 .getNotificationGroup("Marginalia")
                 .createNotification(
-                    "Marginalia integration installed",
-                    "Hook, settings entry and /marginalia command are in place. " +
-                        "Restart any running Claude Code session to pick up the hook.",
+                    MarginaliaBundle.message("install.success.title"),
+                    MarginaliaBundle.message("install.success.message"),
                     NotificationType.INFORMATION,
                 )
                 .notify(project)
         } catch (ex: Exception) {
-            Messages.showErrorDialog(project, "Installation failed: ${ex.message}", "Marginalia")
+            Messages.showErrorDialog(project, MarginaliaBundle.message("install.failed", ex.message ?: ""), "Marginalia")
         }
     }
 

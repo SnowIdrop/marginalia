@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.comment
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import com.github.borgand.marginalia.ui.theme.MarginaliaIcons
 import com.intellij.openapi.editor.Editor
@@ -55,21 +56,21 @@ class InlineCommentPopup(
 
     private fun header(): JComponent = JPanel(FlowLayout(FlowLayout.LEFT, JBUI.scale(6), JBUI.scale(4))).apply {
         border = JBUI.Borders.emptyBottom(2)
-        add(JBLabel("Comment", MarginaliaIcons.Pen, SwingConstants.LEFT).apply { font = JBFont.regular().asBold() })
+        add(JBLabel(MarginaliaBundle.message("comment.header"), MarginaliaIcons.Pen, SwingConstants.LEFT).apply { font = JBFont.regular().asBold() })
         add(JBLabel(displayName).apply { font = JBFont.small(); foreground = MarginaliaColors.textMuted })
-        add(JBLabel("Queued").apply { font = JBFont.small(); foreground = MarginaliaColors.statusPending })
+        add(JBLabel(MarginaliaBundle.message("status.queued")).apply { font = JBFont.small(); foreground = MarginaliaColors.statusPending })
     }
 
     private fun footer(): JComponent = JPanel(BorderLayout()).apply {
         border = JBUI.Borders.empty(2, 12, 8, 12)
         add(
-            JBLabel("Esc to cancel").apply { font = JBFont.small(); foreground = MarginaliaColors.textMuted },
+            JBLabel(MarginaliaBundle.message("comment.cancel.hint")).apply { font = JBFont.small(); foreground = MarginaliaColors.textMuted },
             BorderLayout.WEST,
         )
         add(
-            JButton("Add").apply {
+            JButton(MarginaliaBundle.message("comment.add")).apply {
                 putClientProperty("JButton.buttonType", "default")
-                toolTipText = "Add comment (${shortcutLabel()})"
+                toolTipText = MarginaliaBundle.message("comment.add.tooltip", shortcutLabel())
                 addActionListener { submit() }
             },
             BorderLayout.EAST,

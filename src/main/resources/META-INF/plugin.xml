@@ -32,6 +32,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>org.intellij.plugins.markdown</depends>
+    <resource-bundle>messages.MarginaliaBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.github.borgand.marginalia.startup.MarginaliaStartupActivity"/>

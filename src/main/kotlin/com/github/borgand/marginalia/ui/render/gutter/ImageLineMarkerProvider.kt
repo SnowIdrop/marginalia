@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.render.gutter
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.ui.render.MarkdownStructure
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
@@ -30,10 +31,10 @@ class ImageLineMarkerProvider : LineMarkerProvider {
             result += LineMarkerInfo(
                 leaf, leaf.textRange,
                 com.intellij.icons.AllIcons.FileTypes.Image,
-                { "Preview image" },
+                { MarginaliaBundle.message("render.preview.image") },
                 { e, _ -> showImage(img.url, e) },
                 GutterIconRenderer.Alignment.LEFT,
-                { "Preview image" },
+                { MarginaliaBundle.message("render.preview.image") },
             )
         }
     }

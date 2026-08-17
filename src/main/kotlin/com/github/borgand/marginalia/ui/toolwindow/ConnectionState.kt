@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.toolwindow
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.mcp.McpServerService
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import java.awt.Color
@@ -31,16 +32,34 @@ fun connectionView(
     now: Long = System.currentTimeMillis(),
 ): ConnectionView = when (state) {
     McpServerService.State.FAILED ->
-        ConnectionView("Server error", ConnectionTone.ERROR, "MCP server failed — see Settings > Tools > Marginalia")
+        ConnectionView(
+            MarginaliaBundle.message("connection.server.error"),
+            ConnectionTone.ERROR,
+            MarginaliaBundle.message("connection.server.failed"),
+        )
 
     McpServerService.State.STOPPED ->
-        ConnectionView("Stopped", ConnectionTone.STOPPED, "MCP server stopped")
+        ConnectionView(
+            MarginaliaBundle.message("connection.stopped"),
+            ConnectionTone.STOPPED,
+            MarginaliaBundle.message("connection.server.stopped"),
+        )
 
     McpServerService.State.RUNNING ->
         if (hasConnected) {
-            val tail = lastToolCallAt?.let { " · last call ${relativeTime(it, now)}" } ?: ""
-            ConnectionView("Connected", ConnectionTone.CONNECTED, "Agent connected$tail")
+            val tail = lastToolCallAt?.let {
+                MarginaliaBundle.message("connection.last.call", relativeTime(it, now))
+            } ?: ""
+            ConnectionView(
+                MarginaliaBundle.message("connection.connected"),
+                ConnectionTone.CONNECTED,
+                MarginaliaBundle.message("connection.agent.connected", tail),
+            )
         } else {
-            ConnectionView("Waiting for agent", ConnectionTone.WAITING, "Server up · no agent has connected yet")
+            ConnectionView(
+                MarginaliaBundle.message("connection.waiting"),
+                ConnectionTone.WAITING,
+                MarginaliaBundle.message("connection.waiting.detail"),
+            )
         }
 }

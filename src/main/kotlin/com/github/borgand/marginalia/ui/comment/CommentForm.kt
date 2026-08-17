@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.comment
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.fileTypes.FileTypeManager
@@ -59,7 +60,7 @@ class CommentForm(private val fileName: String, private val line: Int, private v
             isOpaque = false
             alignmentX = JComponent.LEFT_ALIGNMENT
             add(
-                JBLabel("$fileName   line ${line + 1}", icon, SwingConstants.LEFT).apply {
+                JBLabel(MarginaliaBundle.message("comment.context.line", fileName, line + 1), icon, SwingConstants.LEFT).apply {
                     foreground = MarginaliaColors.textMuted
                     iconTextGap = JBUI.scale(5)
                 },
@@ -80,7 +81,7 @@ class CommentForm(private val fileName: String, private val line: Int, private v
                 JBUI.Borders.empty(6, 8),
             )
             val oneLine = snippet.replace('\n', ' ').trim()
-            val shown = oneLine.ifEmpty { "(empty selection)" }
+            val shown = oneLine.ifEmpty { MarginaliaBundle.message("comment.empty.selection") }
             add(
                 JBLabel(truncate(shown, SNIPPET_MAX_CHARS)).apply {
                     font = editorFont

@@ -20,9 +20,9 @@ class VisualStatusTest {
     }
 
     @Test
-    fun dispatchedAndAddressedAreDelivered() {
+    fun dispatchedIsDeliveredAndAddressedWaitsForHumanReview() {
         assertEquals(VisualStatus.DELIVERED, visualStatus(comment(CommentStatus.DISPATCHED)))
-        assertEquals(VisualStatus.DELIVERED, visualStatus(comment(CommentStatus.ADDRESSED)))
+        assertEquals(VisualStatus.ADDRESSED, visualStatus(comment(CommentStatus.ADDRESSED)))
     }
 
     @Test
@@ -42,7 +42,7 @@ class VisualStatusTest {
         // After the agent rewrites the anchored text, the original snippet no longer matches
         // on restart and the comment orphans — but it was delivered/closed, not failed.
         assertEquals(VisualStatus.DELIVERED, visualStatus(comment(CommentStatus.DISPATCHED, orphaned = true)))
-        assertEquals(VisualStatus.DELIVERED, visualStatus(comment(CommentStatus.ADDRESSED, orphaned = true)))
+        assertEquals(VisualStatus.ADDRESSED, visualStatus(comment(CommentStatus.ADDRESSED, orphaned = true)))
         assertEquals(VisualStatus.RESOLVED, visualStatus(comment(CommentStatus.RESOLVED, orphaned = true)))
     }
 }

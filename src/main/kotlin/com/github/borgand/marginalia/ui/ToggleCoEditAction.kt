@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui
 
+import com.github.borgand.marginalia.MarginaliaBundle
 import com.github.borgand.marginalia.core.ActivityLog
 import com.github.borgand.marginalia.core.DocRegistry
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -22,7 +23,10 @@ class ToggleCoEditAction : AnAction(), DumbAware {
             return
         }
         val registered = project.service<DocRegistry>().isCoEdited(file.path)
-        e.presentation.text = if (registered) "Marginalia: Stop Co-Editing" else "Marginalia: Co-Edit This File"
+        e.presentation.text = MarginaliaBundle.message(
+            if (registered) "action.Marginalia.ToggleCoEdit.stop.text" else "action.Marginalia.ToggleCoEdit.text",
+        )
+        e.presentation.description = MarginaliaBundle.message("action.Marginalia.ToggleCoEdit.description")
     }
 
     override fun actionPerformed(e: AnActionEvent) {
