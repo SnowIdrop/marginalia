@@ -26,10 +26,10 @@ class MarginaliaTabColorProviderTest : BasePlatformTestCase() {
         assertNotNull(provider.getEditorTabColor(project, file))
     }
 
-    fun testNoColorWhenOnlyResolvedComments() {
+    fun testNoColorWhenOnlyArchivedComments() {
         val file = myFixture.configureByText("doc.md", "line one\nline two\n").virtualFile
         val comment = store.addComment(myFixture.editor.document, 0, 4, "note", CommentStatus.QUEUED)
-        store.setStatus(comment.id, CommentStatus.RESOLVED)
+        store.setStatus(comment.id, CommentStatus.ARCHIVED)
         assertNull(provider.getEditorTabColor(project, file))
     }
 }

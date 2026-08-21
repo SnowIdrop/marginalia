@@ -43,7 +43,7 @@ class CommentStoreTest : BasePlatformTestCase() {
     fun testRecentCommentBodiesSurviveRemovingActiveComments() {
         configure("alpha\n")
         val doc = myFixture.editor.document
-        store.addComment(doc, 0, 5, "reusable", CommentStatus.RESOLVED)
+        store.addComment(doc, 0, 5, "reusable", CommentStatus.ARCHIVED)
 
         store.removeWhere { true }
 
@@ -212,9 +212,9 @@ class CommentStoreTest : BasePlatformTestCase() {
         val doc = myFixture.editor.document
         val keep = store.addComment(doc, doc.text.indexOf("alpha"), doc.text.indexOf("alpha") + 5, "keep", CommentStatus.QUEUED)
         val drop = store.addComment(doc, doc.text.indexOf("bravo"), doc.text.indexOf("bravo") + 5, "drop", CommentStatus.QUEUED)
-        store.setStatus(drop.id, CommentStatus.RESOLVED)
+        store.setStatus(drop.id, CommentStatus.ARCHIVED)
 
-        val removed = store.removeWhere { it.status == CommentStatus.RESOLVED }
+        val removed = store.removeWhere { it.status == CommentStatus.ARCHIVED }
 
         assertEquals(1, removed)
         assertEquals(listOf(keep.id), store.comments().map { it.id })
@@ -226,7 +226,7 @@ class CommentStoreTest : BasePlatformTestCase() {
         configure("alpha\n")
         val doc = myFixture.editor.document
         store.addComment(doc, 0, 5, "x", CommentStatus.QUEUED)
-        assertEquals(0, store.removeWhere { it.status == CommentStatus.RESOLVED })
+        assertEquals(0, store.removeWhere { it.status == CommentStatus.ARCHIVED })
         assertEquals(1, store.comments().size)
     }
 

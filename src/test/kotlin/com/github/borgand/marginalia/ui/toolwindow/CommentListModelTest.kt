@@ -47,13 +47,61 @@ class CommentListModelTest {
                 comment("/proj/a.md", CommentStatus.DRAFT),
                 comment("/proj/a.md", CommentStatus.QUEUED),
                 comment("/proj/a.md", CommentStatus.DISPATCHED), // delivered, not queued
-                comment("/proj/a.md", CommentStatus.RESOLVED), // not queued
+                comment("/proj/a.md", CommentStatus.ARCHIVED), // not queued
             ),
         )
 
         val header = headers(model).single()
-        assertEquals(4, header.total)
+        assertEquals(3, header.total)
         assertEquals(1, header.queuedCount)
+    }
+
+    @Test
+    fun archivedCommentsAreHiddenByDefault() {
+        val model = CommentListModel()
+        val active = comment("/proj/a.md", CommentStatus.ADDRESSED)
+        val archived = comment("/proj/a.md", CommentStatus.ARCHIVED)
+
+        model.setComments(listOf(active, archived))
+
+        assertEquals(2, model.size)
+        assertEquals(active, (model.getElementAt(1) as SidecarRow.CommentRow).comment)
+
+        model.setVisibleStatuses(setOf(VisualStatus.ARCHIVED))
+        assertEquals(2, model.size)
+        assertEquals(archived, (model.getElementAt(1) as SidecarRow.CommentRow).comment)
+    }
+
+    @Test
+    fun statusFilterSupportsCombinationsAndNoSelection() {
+        val model = CommentListModel()
+        model.setComments(
+            listOf(
+                comment("/proj/a.md", CommentStatus.DRAFT),
+                comment("/proj/a.md", CommentStatus.QUEUED),
+                comment("/proj/b.md", CommentStatus.ARCHIVED),
+            ),
+        )
+
+        model.setVisibleStatuses(setOf(VisualStatus.DRAFT, VisualStatus.ARCHIVED))
+        assertEquals(4, model.size)
+        assertEquals(listOf("a.md", "b.md"), headers(model).map { it.fileName })
+
+        model.setVisibleStatuses(emptySet())
+        assertEquals(0, model.size)
+        assertTrue(headers(model).isEmpty())
+    }
+
+    @Test
+    fun filteringKeepsCollapsedStateForFile() {
+        val model = CommentListModel()
+        model.setComments(listOf(comment("/proj/a.md"), comment("/proj/a.md", CommentStatus.ARCHIVED)))
+        model.toggleCollapsed("/proj/a.md")
+
+        model.setVisibleStatuses(VisualStatus.entries.toSet())
+
+        assertTrue(model.isCollapsed("/proj/a.md"))
+        assertEquals(1, model.size)
     }
 
     @Test

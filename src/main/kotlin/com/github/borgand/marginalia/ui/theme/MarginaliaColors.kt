@@ -36,7 +36,7 @@ object MarginaliaColors {
     /** status.delivered — delivered / connected / success (a light, legible green). */
     val statusDelivered: JBColor get() = JBColor.namedColor("Banner.successBackground", JBColor(0x2E9E45, 0x77C97D))
 
-    /** status.info — resolved / closed. An intentional fixed blue hue: the theme accent
+    /** status.info — archived / closed. An intentional fixed blue hue: the theme accent
      * isn't guaranteed to read as blue, so this token doesn't dereference it. */
     val statusInfo: JBColor get() = JBColor.namedColor("Notification.MoreButton.foreground", JBColor(0x3574F0, 0x548AF7))
 

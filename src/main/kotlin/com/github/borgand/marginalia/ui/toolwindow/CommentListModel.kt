@@ -17,6 +17,7 @@ class CommentListModel : AbstractListModel<SidecarRow>() {
     private val collapsed = mutableSetOf<String>()
     private var lastComments: List<MarginaliaComment> = emptyList()
     private var lastLineOf: (MarginaliaComment) -> Int? = { null }
+    private var visibleStatuses: Set<VisualStatus> = CommentFilterState.DEFAULT_VISIBLE_STATUSES
 
     override fun getSize(): Int = rows.size
     override fun getElementAt(index: Int): SidecarRow = rows[index]
@@ -36,10 +37,17 @@ class CommentListModel : AbstractListModel<SidecarRow>() {
     fun setComments(comments: List<MarginaliaComment>, lineOf: (MarginaliaComment) -> Int? = { null }) =
         rebuild(comments, lineOf)
 
+    fun setVisibleStatuses(statuses: Set<VisualStatus>) {
+        visibleStatuses = statuses.toSet()
+        rebuild(lastComments, lastLineOf)
+    }
+
     private fun rebuild(comments: List<MarginaliaComment>, lineOf: (MarginaliaComment) -> Int?) {
         lastComments = comments
         lastLineOf = lineOf
-        val byFile = comments.groupBy { it.filePath }
+        val byFile = comments
+            .filter { visualStatus(it) in visibleStatuses }
+            .groupBy { it.filePath }
         val newRows = mutableListOf<SidecarRow>()
         for (path in byFile.keys.sortedBy { it.substringAfterLast('/').lowercase() }) {
             val fileComments = byFile.getValue(path)

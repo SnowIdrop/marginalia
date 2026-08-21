@@ -29,8 +29,8 @@ class VisualStatusTest {
     }
 
     @Test
-    fun resolvedIsResolved() {
-        assertEquals(VisualStatus.RESOLVED, visualStatus(comment(CommentStatus.RESOLVED)))
+    fun archivedIsArchived() {
+        assertEquals(VisualStatus.ARCHIVED, visualStatus(comment(CommentStatus.ARCHIVED)))
     }
 
     @Test
@@ -41,12 +41,12 @@ class VisualStatusTest {
     }
 
     @Test
-    fun deliveredOrResolvedCommentKeepsStatusWhenOrphaned() {
+    fun deliveredOrArchivedCommentKeepsStatusWhenOrphaned() {
         // After the agent rewrites the anchored text, the original snippet no longer matches
         // on restart and the comment orphans — but it was delivered/closed, not failed.
         assertEquals(VisualStatus.DELIVERED, visualStatus(comment(CommentStatus.DISPATCHED, orphaned = true)))
         assertEquals(VisualStatus.ADDRESSED, visualStatus(comment(CommentStatus.ADDRESSED, orphaned = true)))
-        assertEquals(VisualStatus.RESOLVED, visualStatus(comment(CommentStatus.RESOLVED, orphaned = true)))
+        assertEquals(VisualStatus.ARCHIVED, visualStatus(comment(CommentStatus.ARCHIVED, orphaned = true)))
     }
 
     @Test
@@ -55,7 +55,7 @@ class VisualStatusTest {
         assertFalse(canRequeue(comment(CommentStatus.QUEUED)))
         assertTrue(canRequeue(comment(CommentStatus.DISPATCHED)))
         assertTrue(canRequeue(comment(CommentStatus.ADDRESSED)))
-        assertTrue(canRequeue(comment(CommentStatus.RESOLVED)))
+        assertTrue(canRequeue(comment(CommentStatus.ARCHIVED)))
         assertTrue(canRequeue(comment(CommentStatus.QUEUED, orphaned = true)))
     }
 }

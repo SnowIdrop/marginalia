@@ -3,10 +3,10 @@ package com.github.borgand.marginalia.core
 /**
  * Lifecycle of a review comment (PRD F2):
  * DRAFT (manual mode, not yet submitted) → QUEUED (visible to the agent)
- * → DISPATCHED (returned by get_pending_comments) → ADDRESSED (agent resolved)
- * → RESOLVED (user closed it).
+ * → DISPATCHED (returned by get_pending_comments) → ADDRESSED (agent handled it)
+ * → ARCHIVED (user closed it).
  */
-enum class CommentStatus { DRAFT, QUEUED, DISPATCHED, ADDRESSED, RESOLVED }
+enum class CommentStatus { DRAFT, QUEUED, DISPATCHED, ADDRESSED, ARCHIVED }
 
 /**
  * Persistable comment bean (XmlSerializer-friendly: mutable fields + no-arg constructor).
@@ -42,4 +42,4 @@ class ReviewRound {
 }
 
 fun canRequeue(comment: MarginaliaComment): Boolean =
-    comment.orphaned || comment.status in setOf(CommentStatus.DISPATCHED, CommentStatus.ADDRESSED, CommentStatus.RESOLVED)
+    comment.orphaned || comment.status in setOf(CommentStatus.DISPATCHED, CommentStatus.ADDRESSED, CommentStatus.ARCHIVED)

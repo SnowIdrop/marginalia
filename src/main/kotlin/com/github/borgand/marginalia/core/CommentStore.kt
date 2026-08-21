@@ -23,7 +23,7 @@ import kotlin.math.abs
  * Orphaned comments (anchor text gone) are flagged, never dropped.
  */
 @Service(Service.Level.PROJECT)
-@State(name = "MarginaliaComments", storages = [Storage("marginalia.xml")])
+@State(name = "MarginaliaArchivedComments", storages = [Storage("marginalia-archived.xml")])
 class CommentStore(private val project: Project) : PersistentStateComponent<CommentStore.State> {
 
     class State {

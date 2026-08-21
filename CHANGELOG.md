@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+### Added
+- **Archived comments and status filters.** Archived comments now leave the default
+  working list without losing their review history. The tool window provides project-persistent,
+  multi-select status filters with active, archived-only, and all-comments presets.
+
+### Changed
+- **Explicit archive deletion.** Removing archived comments is now labeled as permanent deletion
+  and requires confirmation. Progress counts remain global while the list is filtered, and failed
+  comments are included in the progress ribbon.
+- **Breaking archive state rename.** The former `RESOLVED` state and persistence keys were removed
+  instead of migrated. Existing comments and filter preferences from earlier builds are ignored.
+
 ## [1.2.0] - 2026-08-18
 
 ### Added

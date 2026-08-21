@@ -12,14 +12,14 @@ import java.awt.Color
 
 /**
  * Tab affordance for back-referencing (redesign §04): a barely-there `status.pending` wash
- * on the tab of any file that has at least one open (non-resolved, non-orphaned) comment.
+ * on the tab of any file that has at least one open (non-archived, non-orphaned) comment.
  * Theme-safe — derived from the token, never a raw hex.
  */
 class MarginaliaTabColorProvider : EditorTabColorProvider {
 
     override fun getEditorTabColor(project: Project, file: VirtualFile): Color? {
         val hasOpenComment = project.service<CommentStore>().comments(file.path).any {
-            it.status != CommentStatus.RESOLVED && it.status != CommentStatus.ADDRESSED && !it.orphaned
+            it.status != CommentStatus.ARCHIVED && it.status != CommentStatus.ADDRESSED && !it.orphaned
         }
         return if (hasOpenComment) ColorUtil.withAlpha(MarginaliaColors.statusPending, 0.10) else null
     }

@@ -26,7 +26,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import javax.swing.Icon
 
 /**
- * In-editor back-references (PRD F1, redesign §04): for each non-resolved comment, a faint
+ * In-editor back-references (PRD F1, redesign §04): for each non-archived comment, a faint
  * `status.pending @ 12%` line tint, a `status.pending` error-stripe mark, and a gutter pen
  * whose click focuses the Marginalia tool window. Refreshed on every store change.
  */
@@ -54,7 +54,7 @@ class CommentHighlighter(private val project: Project) : com.intellij.openapi.Di
             highlighters.remove(document)?.forEach { it.dispose() }
             val added = mutableListOf<RangeHighlighter>()
             for (comment in store.comments(path)) {
-                if (comment.status == CommentStatus.RESOLVED || comment.status == CommentStatus.ADDRESSED) continue
+                if (comment.status == CommentStatus.ARCHIVED || comment.status == CommentStatus.ADDRESSED) continue
                 val marker = store.markerFor(comment.id) ?: continue
                 val attributes = TextAttributes().apply {
                     backgroundColor = MarginaliaColors.queuedTint

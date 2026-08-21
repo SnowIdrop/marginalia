@@ -14,6 +14,6 @@ class MarginaliaBundleTest {
 
         assertEquals(english.keySet(), chinese.keySet())
         assertEquals("添加评论", chinese.getString("comment.add.title"))
-        assertEquals("已解决", chinese.getString("status.resolved"))
+        assertEquals("已归档", chinese.getString("status.archived"))
     }
 }

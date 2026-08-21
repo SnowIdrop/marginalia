@@ -24,8 +24,8 @@ enum class VisualStatus {
     /** Agent reported the comment as addressed; human confirmation is still pending. */
     ADDRESSED,
 
-    /** Human confirmed the comment is closed. */
-    RESOLVED,
+    /** Human archived the closed comment. */
+    ARCHIVED,
 
     /** Delivery/processing error — in Marginalia, the comment's anchor was lost. */
     FAILED,
@@ -38,7 +38,7 @@ enum class VisualStatus {
                 QUEUED -> "status.queued"
                 DELIVERED -> "status.delivered"
                 ADDRESSED -> "status.addressed"
-                RESOLVED -> "status.resolved"
+                ARCHIVED -> "status.archived"
                 FAILED -> "status.failed"
             },
         )
@@ -49,7 +49,7 @@ enum class VisualStatus {
             QUEUED -> MarginaliaColors.statusPending // amber — pending, not yet sent
             DELIVERED -> MarginaliaColors.statusDelivered // green — in flight / positive progress
             ADDRESSED -> MarginaliaColors.accent // agent response is ready for human review
-            RESOLVED -> MarginaliaColors.statusInfo // blue — closed
+            ARCHIVED -> MarginaliaColors.statusInfo // blue — archived
             FAILED -> MarginaliaColors.statusConflict
         }
 
@@ -59,7 +59,7 @@ enum class VisualStatus {
 
 /**
  * Maps a comment to its visual status. Dispatch state wins over the orphaned flag: once a
- * comment has reached the agent (DISPATCHED/ADDRESSED) or been closed (RESOLVED), a lost
+ * comment has reached the agent (DISPATCHED/ADDRESSED) or been closed (ARCHIVED), a lost
  * anchor is the *expected* outcome of the text being rewritten, not a failure — re-anchoring
  * the original snippet legitimately fails after restart (markers are transient, see
  * [com.github.borgand.marginalia.core.CommentStore.ensureAnchored]). Orphaned only reads as
@@ -67,7 +67,7 @@ enum class VisualStatus {
  * it can no longer be acted on.
  */
 fun visualStatus(comment: MarginaliaComment): VisualStatus = when {
-    comment.status == CommentStatus.RESOLVED -> VisualStatus.RESOLVED
+    comment.status == CommentStatus.ARCHIVED -> VisualStatus.ARCHIVED
     comment.status == CommentStatus.ADDRESSED -> VisualStatus.ADDRESSED
     comment.status == CommentStatus.DISPATCHED -> VisualStatus.DELIVERED
     comment.orphaned -> VisualStatus.FAILED // DRAFT/QUEUED with a lost anchor

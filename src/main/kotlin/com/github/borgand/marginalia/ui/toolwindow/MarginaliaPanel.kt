@@ -17,6 +17,7 @@ import com.github.borgand.marginalia.ui.comment.RequeueCommentDialog
 import com.github.borgand.marginalia.ui.theme.MarginaliaColors
 import com.github.borgand.marginalia.ui.theme.MarginaliaIcons
 import com.intellij.icons.AllIcons
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -63,6 +64,8 @@ class MarginaliaPanel(
 
     private val store = project.service<CommentStore>()
     private val queue = project.service<CommentQueue>()
+    private val filterState = CommentFilterState(PropertiesComponent.getInstance(project))
+    private var visibleStatuses = filterState.visibleStatuses
 
     private val listModel = CommentListModel()
     private val list = JBList(listModel).apply {
@@ -89,6 +92,7 @@ class MarginaliaPanel(
 
         list.componentPopupMenu = buildPopupMenu()
         installListInteractions()
+        listModel.setVisibleStatuses(visibleStatuses)
 
         store.addChangeListener(this) { onEdt { refresh() } }
         refresh()
@@ -98,6 +102,7 @@ class MarginaliaPanel(
     private fun buildToolbar(): JComponent {
         val group = DefaultActionGroup().apply {
             add(AutoQueueToggle())
+            add(FilterActionGroup())
             val more = DefaultActionGroup(MarginaliaBundle.message("panel.more"), true).apply {
                 templatePresentation.icon = AllIcons.General.GearPlain
                 add(RestartServerAction())
@@ -166,8 +171,8 @@ class MarginaliaPanel(
 
     private fun buildPopupMenu(): JPopupMenu = JPopupMenu().apply {
         add(JMenuItem(MarginaliaBundle.message("panel.jump.to.line")).apply { addActionListener { jumpToSelected() } })
-        add(JMenuItem(MarginaliaBundle.message("panel.resolve")).apply {
-            addActionListener { selectedComment()?.let { store.setStatus(it.id, CommentStatus.RESOLVED) } }
+        add(JMenuItem(MarginaliaBundle.message("panel.archive")).apply {
+            addActionListener { selectedComment()?.let { store.setStatus(it.id, CommentStatus.ARCHIVED) } }
         })
         add(JMenuItem(MarginaliaBundle.message("panel.requeue")).apply {
             addActionListener { requeueSelected() }
@@ -199,13 +204,21 @@ class MarginaliaPanel(
     /** Pops the Clear dropdown; each item shows a live count and disables when empty. */
     private fun showClearMenu(anchor: JComponent) {
         val comments = store.comments()
-        val resolved = comments.filter { visualStatus(it) == VisualStatus.RESOLVED }
+        val archived = comments.filter { visualStatus(it) == VisualStatus.ARCHIVED }
         val failed = comments.filter { visualStatus(it) == VisualStatus.FAILED }
 
         val menu = JPopupMenu()
-        menu.add(JMenuItem(MarginaliaBundle.message("panel.clear.resolved", resolved.size)).apply {
-            isEnabled = resolved.isNotEmpty()
-            addActionListener { clear("resolved") { visualStatus(it) == VisualStatus.RESOLVED } }
+        menu.add(JMenuItem(MarginaliaBundle.message("panel.clear.archived", archived.size)).apply {
+            isEnabled = archived.isNotEmpty()
+            addActionListener {
+                val confirmed = Messages.showYesNoDialog(
+                    project,
+                    MarginaliaBundle.message("panel.clear.archived.message", archived.size),
+                    MarginaliaBundle.message("panel.clear.archived.title"),
+                    Messages.getWarningIcon(),
+                ) == Messages.YES
+                if (confirmed) clear("archived") { visualStatus(it) == VisualStatus.ARCHIVED }
+            }
         })
         menu.add(JMenuItem(MarginaliaBundle.message("panel.clear.failed", failed.size)).apply {
             isEnabled = failed.isNotEmpty()
@@ -321,14 +334,21 @@ class MarginaliaPanel(
         store.syncOffsetsFromMarkers()
         val comments = store.comments()
         listModel.setComments(comments) { lineOf(it) }
+        list.emptyText.text = when {
+            comments.isEmpty() -> MarginaliaBundle.message("panel.empty")
+            visibleStatuses.isEmpty() -> MarginaliaBundle.message("panel.filter.empty.selection")
+            listModel.size == 0 -> MarginaliaBundle.message("panel.filter.empty.result")
+            else -> ""
+        }
 
         val counts = comments.groupingBy { visualStatus(it) }.eachCount()
         ribbon.update(
-            resolved = counts[VisualStatus.RESOLVED] ?: 0,
+            archived = counts[VisualStatus.ARCHIVED] ?: 0,
             addressed = counts[VisualStatus.ADDRESSED] ?: 0,
             delivered = counts[VisualStatus.DELIVERED] ?: 0,
             queued = counts[VisualStatus.QUEUED] ?: 0,
             draft = counts[VisualStatus.DRAFT] ?: 0,
+            failed = counts[VisualStatus.FAILED] ?: 0,
         )
 
         val view = connectionView(
@@ -346,6 +366,16 @@ class MarginaliaPanel(
         toolWindow.setIcon(baseBadge.getWarningIcon(pending > 0))
     }
 
+    private fun setVisibleStatuses(statuses: Set<VisualStatus>) {
+        visibleStatuses = statuses.toSet()
+        filterState.visibleStatuses = visibleStatuses
+        listModel.setVisibleStatuses(visibleStatuses)
+        refresh()
+    }
+
+    private fun filterLabel(status: VisualStatus): String =
+        if (status == VisualStatus.ARCHIVED) MarginaliaBundle.message("panel.filter.archived") else status.label
+
     private fun onEdt(action: () -> Unit) {
         val app = ApplicationManager.getApplication()
         if (app.isDispatchThread) action() else app.invokeLater(action)
@@ -362,6 +392,44 @@ class MarginaliaPanel(
         override fun getActionUpdateThread() = ActionUpdateThread.EDT
         override fun isSelected(e: AnActionEvent) = queue.autoDispatch
         override fun setSelected(e: AnActionEvent, state: Boolean) { queue.autoDispatch = state }
+    }
+
+    private inner class FilterActionGroup : DefaultActionGroup(MarginaliaBundle.message("panel.filter"), true) {
+        init {
+            templatePresentation.icon = AllIcons.General.Filter
+            templatePresentation.description = MarginaliaBundle.message("panel.filter.tooltip")
+            add(FilterPresetAction("panel.filter.active", CommentFilterState.DEFAULT_VISIBLE_STATUSES))
+            add(FilterPresetAction("panel.filter.archived.only", setOf(VisualStatus.ARCHIVED)))
+            add(FilterPresetAction("panel.filter.all", VisualStatus.entries.toSet()))
+            addSeparator()
+            VisualStatus.entries.forEach { add(FilterStatusAction(it)) }
+        }
+    }
+
+    private inner class FilterPresetAction(
+        messageKey: String,
+        private val statuses: Set<VisualStatus>,
+    ) : AnAction(MarginaliaBundle.message(messageKey)) {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+        override fun actionPerformed(e: AnActionEvent) = setVisibleStatuses(statuses)
+    }
+
+    private inner class FilterStatusAction(private val status: VisualStatus) : ToggleAction() {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+        override fun update(e: AnActionEvent) {
+            super.update(e)
+            val count = store.comments().count { visualStatus(it) == status }
+            e.presentation.text = MarginaliaBundle.message("panel.filter.status", filterLabel(status), count)
+        }
+
+        override fun isSelected(e: AnActionEvent): Boolean = status in visibleStatuses
+
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+            val updated = visibleStatuses.toMutableSet()
+            if (state) updated += status else updated -= status
+            setVisibleStatuses(updated)
+        }
     }
 
     private inner class RestartServerAction : AnAction(
